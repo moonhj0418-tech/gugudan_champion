@@ -1,0 +1,3483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>구구단 챔피언 🏆</title>
+<!-- v3.1: 마스터리 섹션 확장 (승급 없을 때 격려 메시지 + 진척도 카운트) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-1: #FFF4E0;
+    --bg-2: #FFD6E8;
+    --bg-3: #C7E9FF;
+    --primary: #FF6B6B;
+    --secondary: #4ECDC4;
+    --accent: #FFE66D;
+    --purple: #A78BFA;
+    --green: #6EE7B7;
+    --dark: #2D3748;
+    --gray: #718096;
+    --light: #F7FAFC;
+    --shadow: 0 8px 0 rgba(45, 55, 72, 0.15);
+    --shadow-lg: 0 12px 0 rgba(45, 55, 72, 0.18);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Fredoka', 'Gaegu', sans-serif;
+    color: var(--dark);
+    overflow-x: hidden;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 10% 20%, var(--bg-2) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, var(--bg-3) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-1) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;       /* [v2.1] center → flex-start: 모바일 주소창에 가려짐 방지 */
+    justify-content: center;
+    padding: 20px;
+    padding-top: max(20px, env(safe-area-inset-top, 20px));   /* [v2.1] iOS 노치 대응 */
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    position: relative;
+  }
+
+  /* 떠다니는 숫자 배경 */
+  .floating-numbers {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .floating-numbers span {
+    position: absolute;
+    font-family: 'Gaegu', sans-serif;
+    font-weight: 700;
+    color: rgba(45, 55, 72, 0.06);
+    user-select: none;
+    animation: float 20s linear infinite;
+  }
+  @keyframes float {
+    from { transform: translateY(110vh) rotate(0deg); }
+    to   { transform: translateY(-20vh) rotate(360deg); }
+  }
+
+  .screen {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 600px;
+    display: none;
+  }
+  .screen.active { display: block; animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes pop {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* === 시작 화면 === */
+  .start-card {
+    background: white;
+    border: 4px solid var(--dark);
+    border-radius: 28px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow-lg);
+  }
+  .title {
+    font-size: 44px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+  }
+  .title .emoji { display: inline-block; animation: wiggle 2s ease-in-out infinite; }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(8deg); }
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--gray);
+    font-size: 17px;
+    margin-bottom: 28px;
+    font-family: 'Gaegu', sans-serif;
+    font-weight: 700;
+  }
+
+  .option-group { margin-bottom: 22px; }
+  .option-label {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .option-label .badge {
+    background: var(--accent);
+    border: 2px solid var(--dark);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  .dan-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .dan-btn {
+    position: relative;
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 14px;
+    padding: 12px 0;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 0 var(--dark);
+  }
+  .dan-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--dark); }
+  .dan-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--dark); }
+  .dan-btn.selected {
+    background: var(--secondary);
+    color: white;
+  }
+  /* [v2.1] 선택 시 체크 표시 */
+  .dan-btn.selected::after {
+    content: "✓";
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    background: var(--dark);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  /* [v2.1] 비선택 시 비어있는 동그라미 */
+  .dan-btn:not(.selected)::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #CBD5E0;
+    border-radius: 50%;
+  }
+
+  /* [v2.1] 단 선택 헤더 (라벨 + 전체선택/해제 버튼) */
+  .option-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .option-label-row .option-label {
+    margin-bottom: 0;
+  }
+  .select-toggle-group {
+    display: flex;
+    gap: 6px;
+  }
+  .select-toggle-btn {
+    background: white;
+    border: 2px solid var(--secondary);
+    color: var(--secondary);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.1s;
+  }
+  .select-toggle-btn:hover {
+    background: var(--secondary);
+    color: white;
+  }
+  .select-toggle-btn:active {
+    transform: scale(0.95);
+  }
+
+  .pill-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    flex: 1;
+    min-width: 70px;
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 0 var(--dark);
+  }
+  .pill:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--dark); }
+  .pill:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--dark); }
+  .pill.selected { background: var(--purple); color: white; }
+  .pill.selected.green { background: var(--green); color: var(--dark); }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-1);
+    border: 3px solid var(--dark);
+    border-radius: 16px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+  }
+  .checkbox-row:hover { background: var(--accent); }
+  .checkbox-box {
+    width: 28px;
+    height: 28px;
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+  .checkbox-row.checked .checkbox-box::after { content: "✓"; }
+  .checkbox-text { font-size: 15px; font-weight: 600; }
+  .checkbox-text small { display: block; color: var(--gray); font-size: 13px; font-weight: 400; margin-top: 2px; }
+
+  .info-box {
+    background: linear-gradient(135deg, var(--accent), #FFD93D);
+    border: 3px solid var(--dark);
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin: 20px 0;
+    text-align: center;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .info-box .num {
+    font-size: 24px;
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .start-btn {
+    width: 100%;
+    background: var(--primary);
+    color: white;
+    border: 4px solid var(--dark);
+    border-radius: 18px;
+    padding: 18px;
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--dark);
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+  .start-btn:hover { transform: translateY(-3px); box-shadow: 0 9px 0 var(--dark); }
+  .start-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 var(--dark); }
+  .start-btn:disabled { background: var(--gray); cursor: not-allowed; transform: none; box-shadow: 0 6px 0 var(--dark); }
+
+  /* === 퀴즈 화면 === */
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 4px;
+  }
+  .round-badge {
+    background: var(--purple);
+    color: white;
+    border: 3px solid var(--dark);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 3px 0 var(--dark);
+  }
+  .progress-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark);
+  }
+  .progress-text .current { color: var(--primary); font-size: 22px; }
+
+  .progress-bar {
+    width: 100%;
+    height: 12px;
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 0 var(--dark);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), var(--green));
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 999px;
+  }
+
+  .quiz-card {
+    background: white;
+    border: 4px solid var(--dark);
+    border-radius: 28px;
+    padding: 40px 32px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 타이머 원형 */
+  .timer-ring {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+  }
+  .timer-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+  }
+  .timer-ring circle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+  }
+  .timer-bg { stroke: #EDF2F7; }
+  .timer-fg {
+    stroke: var(--secondary);
+    stroke-dasharray: 219.9;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s;
+  }
+  .timer-fg.warning { stroke: var(--accent); }
+  .timer-fg.danger { stroke: var(--primary); }
+  .timer-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--dark);
+  }
+  .timer-text.danger { color: var(--primary); animation: pulse 0.5s infinite; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  .question {
+    font-size: 72px;
+    font-weight: 700;
+    text-align: center;
+    margin: 16px 0 32px;
+    letter-spacing: 2px;
+    color: var(--dark);
+    line-height: 1;
+  }
+  .question .op { color: var(--primary); margin: 0 8px; }
+  .question .eq { color: var(--secondary); margin: 0 12px; }
+  .question .blank {
+    display: inline-block;
+    min-width: 80px;
+    border-bottom: 6px solid var(--dark);
+    color: var(--purple);
+  }
+
+  .answer-input {
+    width: 100%;
+    background: var(--bg-1);
+    border: 4px solid var(--dark);
+    border-radius: 18px;
+    padding: 20px;
+    font-family: inherit;
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--dark);
+    outline: none;
+    box-shadow: inset 0 4px 0 rgba(45, 55, 72, 0.08);
+    transition: all 0.2s;
+  }
+  .answer-input:focus { background: var(--accent); }
+
+  .hint {
+    text-align: center;
+    color: var(--gray);
+    font-size: 14px;
+    margin-top: 14px;
+    font-family: 'Gaegu', sans-serif;
+    font-weight: 700;
+  }
+  .hint kbd {
+    background: white;
+    border: 2px solid var(--dark);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: inherit;
+    font-size: 13px;
+    box-shadow: 0 2px 0 var(--dark);
+  }
+
+  /* 피드백 오버레이 */
+  .feedback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    border-radius: 24px;
+  }
+  .feedback.show { opacity: 1; }
+  .feedback-icon {
+    font-size: 120px;
+    animation: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes bounceIn {
+    0% { transform: scale(0) rotate(-180deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  .feedback-text {
+    position: absolute;
+    bottom: 40px;
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  /* === 결과 화면 === */
+  .result-card {
+    background: white;
+    border: 4px solid var(--dark);
+    border-radius: 28px;
+    padding: 40px 32px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+  .result-emoji {
+    font-size: 100px;
+    margin-bottom: 12px;
+    animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .result-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .result-subtitle {
+    color: var(--gray);
+    font-size: 16px;
+    margin-bottom: 28px;
+    font-family: 'Gaegu', sans-serif;
+    font-weight: 700;
+  }
+
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .score-box {
+    background: var(--bg-1);
+    border: 3px solid var(--dark);
+    border-radius: 18px;
+    padding: 18px 12px;
+  }
+  .score-box.correct { background: linear-gradient(135deg, #B8F2D9, var(--green)); }
+  .score-box.wrong { background: linear-gradient(135deg, #FFB8B8, #FF8787); }
+  .score-num {
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .score-label {
+    font-size: 14px;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  .wrong-list {
+    background: var(--bg-2);
+    border: 3px solid var(--dark);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 20px;
+    max-height: 220px;
+    overflow-y: auto;
+    text-align: left;
+  }
+  .wrong-list-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .wrong-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .wrong-item {
+    background: white;
+    border: 2px solid var(--dark);
+    border-radius: 10px;
+    padding: 8px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .wrong-item .ans { color: var(--green); font-weight: 700; }
+  .wrong-item .your { color: var(--primary); text-decoration: line-through; font-size: 12px; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    border: 4px solid var(--dark);
+    border-radius: 16px;
+    padding: 16px;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 5px 0 var(--dark);
+    transition: all 0.15s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--dark); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 3px 0 var(--dark); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-secondary { background: white; color: var(--dark); }
+
+  /* 최종 완료 화면 */
+  .champion-emoji { font-size: 140px; animation: bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 20px 0;
+  }
+  .stat-box {
+    background: var(--bg-1);
+    border: 3px solid var(--dark);
+    border-radius: 14px;
+    padding: 12px 6px;
+  }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-label { font-size: 12px; font-weight: 600; color: var(--gray); margin-top: 2px; }
+
+  /* Confetti */
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 12px;
+    height: 12px;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  @media (max-width: 480px) {
+    .title { font-size: 36px; }
+    .question { font-size: 56px; }
+    .answer-input { font-size: 28px; padding: 16px; }
+    .start-card, .quiz-card, .result-card { padding: 28px 22px; }
+  }
+
+  /* ============================================================
+     [v2 추가분 시작]
+     ============================================================ */
+
+/* ============================================================
+   [v2 추가] CSS — 프로필/환영/모달/토스트
+   기존 v1 스타일에 이어 붙이기.
+   :root 변수(--primary, --shadow 등)는 v1에 정의된 것을 그대로 사용.
+   ============================================================ */
+
+
+/* ============================================================
+   1. 프로필 선택 화면 (#profileScreen)
+   ============================================================ */
+.profile-screen-wrap {
+  width: 100%;
+  max-width: 720px;
+  text-align: center;
+}
+
+.profile-screen-wrap h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 8px;
+  letter-spacing: -1px;
+}
+
+.profile-screen-wrap .subtitle {
+  font-size: 1.1rem;
+  color: var(--gray);
+  margin-bottom: 32px;
+}
+
+/* 프로필 카드 그리드 */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* 프로필 카드 */
+.profile-card {
+  position: relative;
+  background: white;
+  border-radius: 24px;
+  padding: 20px 12px 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.profile-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.profile-card:active {
+  transform: translateY(-2px);
+}
+
+.profile-card .avatar {
+  font-size: 3.6rem;
+  line-height: 1;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.profile-card .name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 6px;
+  word-break: keep-all;
+}
+
+.profile-card .streak {
+  font-size: 0.85rem;
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.profile-card .streak.active {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* 카드 우상단 점 3개 메뉴 버튼 */
+.profile-card .menu-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.profile-card .menu-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* 카드 우상단 점 3개 메뉴 버튼 (clean — 길게 누르기 제거됨) */
+
+/* "+ 새 친구 추가" 버튼 카드 */
+.profile-card.add-card {
+  background: rgba(255, 255, 255, 0.6);
+  border: 3px dashed var(--secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+
+.profile-card.add-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.profile-card.add-card .plus-icon {
+  font-size: 3rem;
+  color: var(--secondary);
+  font-weight: 300;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.profile-card.add-card .label {
+  font-size: 1rem;
+  color: var(--secondary);
+  font-weight: 700;
+}
+
+/* 빈 상태 (프로필 0개) */
+.profile-empty {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+  padding: 40px 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.profile-empty .emoji {
+  font-size: 4rem;
+  margin-bottom: 12px;
+}
+
+.profile-empty .text {
+  font-size: 1.1rem;
+  color: var(--gray);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+  .profile-screen-wrap h1 { font-size: 1.8rem; }
+  .profile-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .profile-card { padding: 16px 8px 12px; }
+  .profile-card .avatar { font-size: 3rem; }
+  .profile-card .name { font-size: 1.05rem; }
+}
+
+
+/* ============================================================
+   2. 환영 화면 (#welcomeScreen)
+   ============================================================ */
+.welcome-wrap {
+  text-align: center;
+  width: 100%;
+  max-width: 480px;
+}
+
+.welcome-avatar {
+  font-size: 6rem;
+  line-height: 1;
+  margin-bottom: 20px;
+  display: inline-block;
+  animation: welcomeBounce 0.6s ease-out;
+}
+
+@keyframes welcomeBounce {
+  0%   { transform: scale(0.3);  opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.welcome-greeting {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+
+.welcome-message {
+  font-size: 1.15rem;
+  color: var(--gray);
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+.welcome-message .streak-fire {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* 미니 통계 카드 */
+.welcome-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.welcome-stat {
+  background: white;
+  border-radius: 18px;
+  padding: 14px 8px;
+  box-shadow: var(--shadow);
+}
+
+.welcome-stat .label {
+  font-size: 0.85rem;
+  color: var(--gray);
+  margin-bottom: 4px;
+}
+
+.welcome-stat .value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.welcome-stat .value .unit {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--gray);
+  margin-left: 2px;
+}
+
+/* 시작 버튼 */
+.welcome-start-btn {
+  width: 100%;
+  padding: 18px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: inherit;
+  margin-bottom: 14px;
+}
+
+.welcome-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.welcome-start-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 rgba(45, 55, 72, 0.15);
+}
+
+.welcome-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--gray);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 8px;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+
+/* ============================================================
+   3. 시험 옵션 화면 상단 (프로필 헤더)
+   기존 #startScreen 안에 추가되는 새 영역
+   ============================================================ */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+.profile-header .back-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+  flex-shrink: 0;
+  font-family: inherit;
+  box-shadow: 0 3px 0 rgba(45, 55, 72, 0.1);
+}
+
+.profile-header .back-btn:hover {
+  transform: scale(1.1);
+}
+
+.profile-header .header-avatar {
+  font-size: 2.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.profile-header .header-info {
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+}
+
+.profile-header .greeting {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-header .sub {
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+
+/* ============================================================
+   4. 모달 시스템 (.modal-overlay / .modal-card)
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 55, 72, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 28px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  transform: scale(0.9);
+  transition: transform 0.2s;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-overlay.active .modal-card {
+  transform: scale(1);
+}
+
+.modal-card .modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dark);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.modal-card .modal-subtitle {
+  font-size: 0.95rem;
+  color: var(--gray);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 입력 필드 */
+.modal-card .form-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.modal-card .form-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1.1rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  margin-bottom: 18px;
+  -webkit-appearance: none;
+}
+
+.modal-card .form-input:focus {
+  border-color: var(--secondary);
+}
+
+/* 아바타 선택 그리드 */
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.avatar-option {
+  background: #F7FAFC;
+  border: 3px solid transparent;
+  border-radius: 14px;
+  padding: 10px 0;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s, background 0.1s;
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.avatar-option:hover {
+  background: #EDF2F7;
+  transform: scale(1.05);
+}
+
+.avatar-option.selected {
+  border-color: var(--primary);
+  background: #FFF5F5;
+}
+
+/* 모달 액션 버튼 영역 */
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, opacity 0.1s;
+}
+
+.modal-actions button:active {
+  transform: translateY(1px);
+}
+
+.modal-actions .btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.modal-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-actions .btn-secondary {
+  background: #E2E8F0;
+  color: var(--dark);
+}
+
+.modal-actions .btn-danger {
+  background: #FC8181;
+  color: white;
+}
+
+/* 카드 메뉴 시트 (점 3개 클릭 시 뜨는 작은 메뉴) */
+.menu-sheet {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 320px;
+  padding: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  transform: scale(0.9);
+  transition: transform 0.2s;
+}
+
+.modal-overlay.active .menu-sheet {
+  transform: scale(1);
+}
+
+.menu-sheet .menu-header {
+  text-align: center;
+  padding: 14px 12px 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray);
+  border-bottom: 1px solid #EDF2F7;
+  margin-bottom: 6px;
+}
+
+.menu-sheet .menu-header .target-name {
+  color: var(--dark);
+  font-weight: 700;
+}
+
+.menu-sheet button {
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 1.05rem;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--dark);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-sheet button:hover {
+  background: #F7FAFC;
+}
+
+.menu-sheet button.danger {
+  color: #E53E3E;
+}
+
+.menu-sheet button.cancel {
+  justify-content: center;
+  color: var(--gray);
+  font-weight: 600;
+  margin-top: 4px;
+  border-top: 1px solid #EDF2F7;
+  border-radius: 0;
+  padding-top: 14px;
+}
+
+
+/* ============================================================
+   5. 토스트 (우측 상단 알림)
+   ============================================================ */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: calc(100% - 40px);
+}
+
+.toast {
+  background: white;
+  color: var(--dark);
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+  max-width: 360px;
+  animation: toastIn 0.3s ease-out;
+  pointer-events: auto;
+  border-left: 6px solid var(--secondary);
+}
+
+.toast.success { border-left-color: var(--green); }
+.toast.error   { border-left-color: var(--primary); }
+.toast.sync    { border-left-color: var(--purple); }
+.toast.info    { border-left-color: var(--secondary); }
+
+.toast.fade-out {
+  animation: toastOut 0.3s ease-in forwards;
+}
+
+.toast .icon {
+  font-size: 1.2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast .message {
+  flex: 1;
+  word-break: keep-all;
+}
+
+@keyframes toastIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes toastOut {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+
+/* ============================================================
+   6. 로딩 인디케이터
+   ============================================================ */
+/* 전체 화면 로딩 (블로킹) */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 244, 224, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  z-index: 1500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.loading-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.spinner {
+  width: 56px;
+  height: 56px;
+  border: 6px solid #E2E8F0;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-overlay .loading-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--dark);
+}
+
+/* 작은 동기화 인디케이터 (백그라운드) */
+.sync-indicator {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 100;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  color: var(--purple);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync-indicator.active {
+  display: flex;
+}
+
+.sync-indicator .mini-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #E2E8F0;
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+
+/* ============================================================
+   7. 에러 패널 (네트워크 실패 시)
+   ============================================================ */
+.error-panel {
+  background: #FFF5F5;
+  border: 2px solid #FC8181;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.error-panel .error-emoji {
+  font-size: 2rem;
+  margin-bottom: 6px;
+}
+
+.error-panel .error-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #C53030;
+  margin-bottom: 6px;
+}
+
+.error-panel .error-message {
+  font-size: 0.9rem;
+  color: var(--gray);
+  margin-bottom: 14px;
+  word-break: keep-all;
+}
+
+.error-panel .retry-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.error-panel .retry-btn:hover {
+  transform: translateY(-1px);
+}
+
+
+/* ============================================================
+   8. [v2.1] 스크롤 힌트 (아래로 내려봐!)
+   #startScreen 처럼 콘텐츠가 길 수 있는 화면에 표시.
+   ============================================================ */
+.scroll-hint {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: var(--primary);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35), 0 4px 0 rgba(45, 55, 72, 0.2);
+  z-index: 500;
+  pointer-events: none;        /* 클릭 막음 — 시각 가이드만 */
+  display: none;
+  align-items: center;
+  gap: 6px;
+  animation: scroll-hint-bounce 1.4s ease-in-out infinite;
+  transition: opacity 0.3s, transform 0.3s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.scroll-hint.active {
+  display: flex;
+}
+
+.scroll-hint.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+}
+
+.scroll-hint .arrow {
+  font-size: 1.1rem;
+  animation: scroll-arrow-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes scroll-hint-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-6px); }
+}
+
+@keyframes scroll-arrow-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+
+/* ============================================================
+   9. [v3] 마스터리 섹션 (finalScreen 결과 화면용)
+   ============================================================ */
+
+/* 저장 중 작은 인디케이터 */
+.final-saving {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 8px 12px;
+  background: rgba(167, 139, 250, 0.12);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--purple);
+  font-weight: 600;
+}
+
+/* 한 줄 축하 메시지 */
+.mastery-oneline {
+  margin-top: 18px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FFE4B5 100%);
+  border-radius: 18px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--dark);
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(255, 200, 100, 0.25);
+  word-break: keep-all;
+}
+
+/* 자세한 섹션 (블록 컨테이너) */
+.mastery-detail {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.mastery-block {
+  background: white;
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  border: 2px solid #FFE4B5;
+}
+
+.mastery-block-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 10px;
+}
+
+.mastery-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 마스터 칩: 새로 마스터한 문제 */
+.mastery-chip {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #FFD89B 0%, #FFC069 100%);
+  color: var(--dark);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* 자라는 중 칩: 한 단계 올라간 문제 */
+.mastery-chip.growing {
+  background: linear-gradient(135deg, #BBF7D0 0%, #86EFAC 100%);
+  color: #065F46;
+}
+
+/* 등장 애니메이션 */
+.mastery-fade-in {
+  animation: masteryFadeIn 0.5s ease-out;
+}
+
+@keyframes masteryFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* [v3.1] 격려 메시지 (승급 없을 때) */
+.mastery-encourage {
+  margin-top: 18px;
+  padding: 18px 16px;
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  border-radius: 18px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(110, 231, 183, 0.2);
+}
+
+.mastery-encourage-emoji {
+  font-size: 2.2rem;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.mastery-encourage-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #065F46;
+  margin-bottom: 4px;
+}
+
+.mastery-encourage-sub {
+  font-size: 0.9rem;
+  color: #047857;
+  word-break: keep-all;
+}
+
+
+/* [v3.1] 전체 진척도 카운트 (작은 한 줄, 항상 표시) */
+.mastery-progress {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gray);
+  flex-wrap: wrap;
+  box-shadow: var(--shadow);
+}
+
+/* JS가 display: flex 또는 none으로 토글 */
+
+.mastery-progress .progress-label {
+  margin-right: 4px;
+  color: var(--dark);
+}
+
+.mastery-progress .progress-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mastery-progress .progress-item .emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.mastery-progress .progress-item .num {
+  font-weight: 700;
+  color: var(--dark);
+  min-width: 16px;
+  text-align: left;
+}
+
+.mastery-progress .progress-divider {
+  color: #CBD5E0;
+  margin: 0 2px;
+}
+
+  /* [v2 추가분 끝] */
+</style>
+</head>
+<body>
+
+<div class="floating-numbers" id="floatingBg"></div>
+
+<!-- ===========================================================
+     [v2 추가] 프로필 선택 화면 — 앱 시작 시 첫 화면
+     =========================================================== -->
+<div id="profileScreen" class="screen active">
+  <div class="profile-screen-wrap">
+    <h1>구구단 챔피언 🏆</h1>
+    <p class="subtitle">누구의 친구인지 알려줘!</p>
+
+    <div id="profileLoadError" class="error-panel" style="display: none;">
+      <div class="error-emoji">😢</div>
+      <div class="error-title">앗, 친구 목록을 못 받아왔어</div>
+      <div class="error-message" id="profileLoadErrorMsg">인터넷이 잘 되는지 확인해줘!</div>
+      <button class="retry-btn" id="profileLoadRetryBtn">다시 해보기</button>
+    </div>
+
+    <div id="profileEmptyState" class="profile-empty" style="display: none;">
+      <div class="emoji">👋</div>
+      <div class="text">
+        아직 친구가 없네!<br/>
+        아래 버튼으로 새 친구를 만들어줘
+      </div>
+    </div>
+
+    <div id="profileGrid" class="profile-grid">
+      <!-- 카드들은 JS에서 동적으로 추가 -->
+    </div>
+  </div>
+</div>
+
+<!-- ===========================================================
+     [v2 추가] 환영 화면
+     =========================================================== -->
+<div id="welcomeScreen" class="screen">
+  <div class="welcome-wrap">
+    <div class="welcome-avatar" id="welcomeAvatar">🦁</div>
+    <h2 class="welcome-greeting" id="welcomeGreeting">안녕!</h2>
+    <p class="welcome-message" id="welcomeMessage">오늘도 화이팅!</p>
+
+    <div class="welcome-stats" id="welcomeStats" style="display: none;">
+      <div class="welcome-stat">
+        <div class="label">총 학습일</div>
+        <div class="value"><span id="welcomeTotalDays">0</span><span class="unit">일</span></div>
+      </div>
+      <div class="welcome-stat">
+        <div class="label">시험 횟수</div>
+        <div class="value"><span id="welcomeSessionCount">0</span><span class="unit">번</span></div>
+      </div>
+    </div>
+
+    <button class="welcome-start-btn" id="welcomeStartBtn">시작하기 🚀</button>
+    <button class="welcome-back-btn" id="welcomeBackBtn">← 다른 친구로</button>
+  </div>
+</div>
+
+<!-- 시작 화면 (v2: 시험 옵션 화면. 초기 활성화는 profileScreen이 가짐) -->
+<div class="screen" id="startScreen">
+  <!-- [v2 추가] 프로필 헤더 -->
+  <div class="profile-header" id="startProfileHeader">
+    <button class="back-btn" id="startBackBtn" title="다른 친구로 바꾸기">←</button>
+    <div class="header-avatar" id="startHeaderAvatar">🦄</div>
+    <div class="header-info">
+      <div class="greeting" id="startGreeting">친구!</div>
+      <div class="sub" id="startSub">오늘도 화이팅</div>
+    </div>
+  </div>
+
+  <div class="start-card">
+    <h1 class="title">구구단 <span class="emoji">🏆</span> 챔피언</h1>
+    <p class="subtitle">시간 안에 다 풀 수 있을까?</p>
+
+    <div class="option-group">
+      <div class="option-label-row">
+        <div class="option-label"><span class="badge">1</span> 어떤 단을 연습할까?</div>
+        <div class="select-toggle-group">
+          <button type="button" class="select-toggle-btn" id="danSelectAll">전체</button>
+          <button type="button" class="select-toggle-btn" id="danSelectNone">해제</button>
+        </div>
+      </div>
+      <div class="dan-grid" id="danGrid">
+        <button class="dan-btn selected" data-dan="2">2단</button>
+        <button class="dan-btn selected" data-dan="3">3단</button>
+        <button class="dan-btn selected" data-dan="4">4단</button>
+        <button class="dan-btn selected" data-dan="5">5단</button>
+        <button class="dan-btn selected" data-dan="6">6단</button>
+        <button class="dan-btn selected" data-dan="7">7단</button>
+        <button class="dan-btn selected" data-dan="8">8단</button>
+        <button class="dan-btn selected" data-dan="9">9단</button>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <div class="option-label"><span class="badge">2</span> 문제 개수</div>
+      <div class="pill-group" id="countGroup">
+        <button class="pill" data-count="20">20개</button>
+        <button class="pill" data-count="40">40개</button>
+        <button class="pill selected" data-count="80">80개</button>
+        <button class="pill" data-count="all">전체</button>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <div class="option-label"><span class="badge">3</span> 한 문제당 시간</div>
+      <div class="pill-group" id="timeGroup">
+        <button class="pill" data-time="5">5초</button>
+        <button class="pill selected green" data-time="7">7초</button>
+        <button class="pill" data-time="10">10초</button>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <div class="checkbox-row" id="dupCheck">
+        <div class="checkbox-box"></div>
+        <div class="checkbox-text">
+          중복 문제 허용
+          <small>같은 문제가 여러 번 나올 수 있어요</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box" id="infoBox">
+      총 <span class="num" id="totalQ">72</span>문제 · 시간 <span class="num" id="totalT">7</span>초
+    </div>
+
+    <button class="start-btn" id="startBtn">시작하기 🚀</button>
+  </div>
+</div>
+
+<!-- 퀴즈 화면 -->
+<div class="screen" id="quizScreen">
+  <div class="quiz-header">
+    <div class="round-badge" id="roundBadge">1차 시험</div>
+    <div class="progress-text"><span class="current" id="qCurrent">1</span> / <span id="qTotal">80</span></div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+
+  <div class="quiz-card">
+    <div class="timer-ring">
+      <svg viewBox="0 0 80 80">
+        <circle class="timer-bg" cx="40" cy="40" r="35"></circle>
+        <circle class="timer-fg" id="timerCircle" cx="40" cy="40" r="35"></circle>
+      </svg>
+      <div class="timer-text" id="timerText">7</div>
+    </div>
+
+    <div class="question" id="questionText">
+      <span>2</span><span class="op">×</span><span>3</span><span class="eq">=</span><span class="blank">?</span>
+    </div>
+
+    <input type="number" inputmode="numeric" pattern="[0-9]*" class="answer-input" id="answerInput" placeholder="?" autocomplete="off">
+
+    <div class="hint">
+      답을 입력하고 <kbd>Enter</kbd>를 눌러요
+    </div>
+
+    <div class="feedback" id="feedback">
+      <div class="feedback-icon" id="feedbackIcon">✅</div>
+      <div class="feedback-text" id="feedbackText"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 라운드 결과 화면 -->
+<div class="screen" id="resultScreen">
+  <div class="result-card">
+    <div class="result-emoji" id="resultEmoji">🎯</div>
+    <h2 class="result-title" id="resultTitle">1차 시험 끝!</h2>
+    <p class="result-subtitle" id="resultSubtitle">결과를 확인해볼까?</p>
+
+    <div class="score-row">
+      <div class="score-box correct">
+        <div class="score-num" id="correctNum">0</div>
+        <div class="score-label">맞은 문제 ✓</div>
+      </div>
+      <div class="score-box wrong">
+        <div class="score-num" id="wrongNum">0</div>
+        <div class="score-label">틀린 문제 ✗</div>
+      </div>
+    </div>
+
+    <div class="wrong-list" id="wrongList">
+      <div class="wrong-list-title">📝 틀린 문제 다시보기</div>
+      <div class="wrong-grid" id="wrongGrid"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="quitBtn">처음으로</button>
+      <button class="btn btn-primary" id="nextBtn">틀린 문제 다시! 💪</button>
+    </div>
+    <button class="welcome-back-btn" id="resultBackToProfileBtn" style="margin-top: 8px;">← 다른 친구로</button>
+  </div>
+</div>
+
+<!-- 최종 완료 화면 -->
+<div class="screen" id="finalScreen">
+  <div class="result-card">
+    <div class="champion-emoji">🏆</div>
+    <h2 class="result-title">완벽 클리어!</h2>
+    <p class="result-subtitle">모든 문제를 다 맞혔어요! 정말 대단해요 🎉</p>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num" id="finalRounds">1</div>
+        <div class="stat-label">총 라운드</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="finalQuestions">0</div>
+        <div class="stat-label">푼 문제</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="finalTime">0:00</div>
+        <div class="stat-label">소요 시간</div>
+      </div>
+    </div>
+
+    <!-- [v3] 저장 인디케이터 (백엔드 응답 대기 중) -->
+    <div class="final-saving" id="finalSavingIndicator" style="display: none;">
+      <div class="mini-spinner"></div>
+      <span>✨ 오늘의 성장 살펴보는 중...</span>
+    </div>
+
+    <!-- [v3] 마스터리 한 줄 메시지 -->
+    <div class="mastery-oneline" id="masteryOneLine" style="display: none;"></div>
+
+    <!-- [v3.1] 승급 없을 때 격려 메시지 -->
+    <div class="mastery-encourage" id="masteryEncourage" style="display: none;">
+      <div class="mastery-encourage-emoji">🌱</div>
+      <div class="mastery-encourage-title">기록이 쌓이고 있어요!</div>
+      <div class="mastery-encourage-sub">계속 풀면 마스터리가 자라날 거예요 🌿</div>
+    </div>
+
+    <!-- [v3] 마스터리 자세한 섹션 -->
+    <div class="mastery-detail" id="masteryDetail" style="display: none;">
+      <div id="masteryMasterBlock" class="mastery-block" style="display: none;">
+        <div class="mastery-block-title">🎉 새로 마스터한 문제</div>
+        <div class="mastery-list" id="masteryMasterList"></div>
+      </div>
+      <div id="masteryGrowingBlock" class="mastery-block" style="display: none;">
+        <div class="mastery-block-title">🌿 자라는 중으로 올라간 문제</div>
+        <div class="mastery-list" id="masteryGrowingList"></div>
+      </div>
+    </div>
+
+    <!-- [v3.1] 전체 진척도 카운트 (항상 표시) -->
+    <div class="mastery-progress" id="masteryProgress" style="display: none;">
+      <span class="progress-label">지금까지</span>
+      <span class="progress-item"><span class="emoji">🌱</span><span class="num" id="progressSeedling">0</span></span>
+      <span class="progress-divider">·</span>
+      <span class="progress-item"><span class="emoji">🌿</span><span class="num" id="progressGrowing">0</span></span>
+      <span class="progress-divider">·</span>
+      <span class="progress-item"><span class="emoji">🌳</span><span class="num" id="progressMaster">0</span></span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="finalBackToProfileBtn">← 다른 친구로</button>
+      <button class="btn btn-primary" id="restartBtn">새로 도전하기 🔄</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===========================================================
+     [v2 추가] 모달 / 템플릿 / 토스트 / 로딩
+     =========================================================== -->
+
+<!-- 모달 오버레이 (동적 콘텐츠 삽입) -->
+<div class="modal-overlay" id="modalOverlay"></div>
+
+<!-- 모달 템플릿 1: 프로필 만들기 -->
+<template id="tplCreateProfileModal">
+  <div class="modal-card">
+    <div class="modal-title">새 친구 만들기 ✨</div>
+    <div class="modal-subtitle">이름과 아바타를 골라줘!</div>
+    <label class="form-label">이름</label>
+    <input
+      type="text"
+      class="form-input"
+      data-input="name"
+      placeholder="예: 민준"
+      maxlength="20"
+      autocomplete="off"
+    />
+    <label class="form-label">아바타</label>
+    <div class="avatar-grid" data-grid="avatars"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" data-action="cancel">취소</button>
+      <button class="btn-primary" data-action="confirm" disabled>만들기</button>
+    </div>
+  </div>
+</template>
+
+<!-- 모달 템플릿 2: 프로필 메뉴 시트 -->
+<template id="tplProfileMenuSheet">
+  <div class="menu-sheet">
+    <div class="menu-header">
+      <span class="target-name" data-fill="name">친구</span> <span style="color: var(--gray); font-weight: 500;">메뉴</span>
+    </div>
+    <button data-action="delete" class="danger">
+      <span>🗑️</span>
+      <span>이 친구 삭제하기</span>
+    </button>
+    <button data-action="cancel" class="cancel">취소</button>
+  </div>
+</template>
+
+<!-- 모달 템플릿 3: 삭제 확인 -->
+<template id="tplConfirmDeleteModal">
+  <div class="modal-card">
+    <div class="modal-title">정말 삭제할까? 😢</div>
+    <div class="modal-subtitle">
+      <strong data-fill="name">친구</strong>의 모든 학습 기록이 사라져!<br/>
+      되돌릴 수 없어.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" data-action="cancel">아니, 그만둘래</button>
+      <button class="btn-danger" data-action="confirm">응, 삭제할래</button>
+    </div>
+  </div>
+</template>
+
+<!-- 토스트 컨테이너 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 로딩 오버레이 (블로킹) -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">잠깐만 기다려줘...</div>
+</div>
+
+<!-- 작은 동기화 인디케이터 -->
+<div class="sync-indicator" id="syncIndicator">
+  <div class="mini-spinner"></div>
+  <span>새로고침 중...</span>
+</div>
+
+<!-- [v2.1] 스크롤 힌트 (시험 옵션 화면에서만 표시) -->
+<div class="scroll-hint" id="scrollHint">
+  <span class="arrow">↓</span>
+  <span>아래로 내려봐!</span>
+  <span class="arrow">↓</span>
+</div>
+
+<script>
+// ============== 떠다니는 배경 숫자 ==============
+(function() {
+  const bg = document.getElementById('floatingBg');
+  const symbols = ['×', '=', '2', '3', '4', '5', '6', '7', '8', '9', '+', '?'];
+  for (let i = 0; i < 25; i++) {
+    const s = document.createElement('span');
+    s.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    s.style.left = Math.random() * 100 + '%';
+    s.style.fontSize = (Math.random() * 60 + 30) + 'px';
+    s.style.animationDuration = (Math.random() * 15 + 15) + 's';
+    s.style.animationDelay = (Math.random() * 20) + 's';
+    bg.appendChild(s);
+  }
+})();
+
+// ============== 상태 관리 ==============
+const state = {
+  selectedDans: [2, 3, 4, 5, 6, 7, 8, 9],
+  questionCount: 80,
+  timePerQ: 7,
+  allowDuplicates: false,
+  questions: [],
+  currentIdx: 0,
+  wrongQuestions: [],
+  round: 1,
+  timer: null,
+  timeLeft: 7,
+  totalQuestionsAnswered: 0,
+  startTime: 0,
+
+  // [v2 추가] 프로필 시스템
+  currentProfile: null,        // { id, name, avatar, ... }
+  profiles: [],                // 전체 프로필 목록
+  profileSessions: [],         // 캐시된 세션 (3단계에서 활용)
+  profileStats: [],            // 캐시된 문제 통계 (3단계에서 활용)
+  isOnline: navigator.onLine,
+
+  // [v3 추가] 시험 결과 수집
+  questionStartTime: 0,        // 현재 문제 표시 시각 (응답시간 측정용)
+  sessionAttempts: [],         // 시험 중 누적: [{ question, a, b, isCorrect, responseTime, isTimeout }, ...]
+  sessionStartedAt: null,      // 시험 시작 ISO 시각 (saveSession에 전달)
+  sessionMasteryChanges: [],   // 백엔드 응답: [{ question, prev, next }]
+};
+
+// ============== 시작 화면 옵션 ==============
+const danBtns = document.querySelectorAll('.dan-btn');
+danBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('selected');
+    updateInfo();
+  });
+});
+
+document.querySelectorAll('#countGroup .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#countGroup .pill').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateInfo();
+  });
+});
+
+document.querySelectorAll('#timeGroup .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#timeGroup .pill').forEach(b => b.classList.remove('selected', 'green'));
+    btn.classList.add('selected');
+    if (btn.dataset.time === '7') btn.classList.add('green');
+    updateInfo();
+  });
+});
+
+const dupCheck = document.getElementById('dupCheck');
+dupCheck.addEventListener('click', () => {
+  dupCheck.classList.toggle('checked');
+  updateInfo();
+});
+
+function getSelectedDans() {
+  return Array.from(document.querySelectorAll('.dan-btn.selected')).map(b => parseInt(b.dataset.dan));
+}
+function getCountSetting() {
+  const sel = document.querySelector('#countGroup .pill.selected');
+  return sel ? sel.dataset.count : '80';
+}
+function getTimeSetting() {
+  const sel = document.querySelector('#timeGroup .pill.selected');
+  return sel ? parseInt(sel.dataset.time) : 7;
+}
+
+function updateInfo() {
+  const dans = getSelectedDans();
+  const countSet = getCountSetting();
+  const timeSet = getTimeSetting();
+  const allowDup = dupCheck.classList.contains('checked');
+
+  const maxUnique = dans.length * 9; // 각 단에 ×1~×9
+  let total;
+
+  if (countSet === 'all') {
+    total = maxUnique;
+  } else {
+    const requested = parseInt(countSet);
+    if (allowDup) {
+      total = requested;
+    } else {
+      total = Math.min(requested, maxUnique);
+    }
+  }
+
+  document.getElementById('totalQ').textContent = total;
+  document.getElementById('totalT').textContent = timeSet;
+
+  document.getElementById('startBtn').disabled = dans.length === 0;
+}
+
+document.getElementById('startBtn').addEventListener('click', startQuiz);
+
+function startQuiz() {
+  state.selectedDans = getSelectedDans();
+  if (state.selectedDans.length === 0) return;
+
+  const countSet = getCountSetting();
+  state.allowDuplicates = dupCheck.classList.contains('checked');
+  state.timePerQ = getTimeSetting();
+
+  // 문제 생성
+  const allCombos = [];
+  for (const d of state.selectedDans) {
+    for (let m = 1; m <= 9; m++) {
+      allCombos.push({ a: d, b: m, answer: d * m });
+    }
+  }
+
+  let count;
+  if (countSet === 'all') {
+    count = allCombos.length;
+  } else {
+    const requested = parseInt(countSet);
+    count = state.allowDuplicates ? requested : Math.min(requested, allCombos.length);
+  }
+  state.questionCount = count;
+
+  let questions;
+  if (state.allowDuplicates && count > allCombos.length) {
+    questions = [];
+    for (let i = 0; i < count; i++) {
+      questions.push(allCombos[Math.floor(Math.random() * allCombos.length)]);
+    }
+    questions = shuffle(questions);
+  } else {
+    questions = shuffle([...allCombos]).slice(0, count);
+  }
+
+  state.questions = questions;
+  state.currentIdx = 0;
+  state.wrongQuestions = [];
+  state.round = 1;
+  state.totalQuestionsAnswered = 0;
+  state.startTime = Date.now();
+
+  // [v3] 데이터 수집 초기화
+  state.sessionAttempts = [];
+  state.sessionStartedAt = new Date().toISOString();
+  state.sessionMasteryChanges = [];
+
+  showScreen('quizScreen');
+  document.getElementById('qTotal').textContent = state.questions.length;
+  showQuestion();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ============== 퀴즈 진행 ==============
+// [v3 정리] showScreen은 v2 추가분(아래 섹션 5)에 통합됨. 여기 v1 원본은 제거.
+
+function showQuestion() {
+  const q = state.questions[state.currentIdx];
+  const qEl = document.getElementById('questionText');
+  qEl.innerHTML = `<span>${q.a}</span><span class="op">×</span><span>${q.b}</span><span class="eq">=</span><span class="blank">?</span>`;
+
+  document.getElementById('qCurrent').textContent = state.currentIdx + 1;
+  const progress = ((state.currentIdx) / state.questions.length) * 100;
+  document.getElementById('progressFill').style.width = progress + '%';
+
+  const input = document.getElementById('answerInput');
+  input.value = '';
+  input.disabled = false;
+  setTimeout(() => input.focus(), 100);
+
+  // [v3] 응답시간 측정 시작
+  state.questionStartTime = Date.now();
+
+  startTimer();
+}
+
+function startTimer() {
+  state.timeLeft = state.timePerQ;
+  const circle = document.getElementById('timerCircle');
+  const text = document.getElementById('timerText');
+  const circumference = 219.9;
+
+  circle.classList.remove('warning', 'danger');
+  text.classList.remove('danger');
+  circle.style.transition = 'none';
+  circle.style.strokeDashoffset = '0';
+  text.textContent = state.timeLeft;
+
+  // 다음 프레임에 transition 활성화
+  requestAnimationFrame(() => {
+    circle.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s';
+  });
+
+  if (state.timer) clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    state.timeLeft--;
+    const offset = circumference * (1 - state.timeLeft / state.timePerQ);
+    circle.style.strokeDashoffset = offset;
+    text.textContent = state.timeLeft;
+
+    if (state.timeLeft <= 2) {
+      circle.classList.add('danger');
+      text.classList.add('danger');
+    } else if (state.timeLeft <= Math.ceil(state.timePerQ / 2)) {
+      circle.classList.add('warning');
+    }
+
+    if (state.timeLeft <= 0) {
+      clearInterval(state.timer);
+      handleAnswer(null); // 시간 초과
+    }
+  }, 1000);
+}
+
+document.getElementById('answerInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim();
+    if (val !== '') {
+      handleAnswer(parseInt(val));
+    }
+  }
+});
+
+function handleAnswer(userAnswer) {
+  if (state.timer) {
+    clearInterval(state.timer);
+    state.timer = null;
+  }
+
+  const input = document.getElementById('answerInput');
+  input.disabled = true;
+
+  const q = state.questions[state.currentIdx];
+  const isTimeout = userAnswer === null;
+  const isCorrect = !isTimeout && userAnswer === q.answer;
+
+  state.totalQuestionsAnswered++;
+
+  // [v3] 응답시간 계산 + attempts 누적
+  let responseTime;
+  if (isTimeout) {
+    // 시간초과 시 응답시간 = 시간제한 (지침서 기준)
+    responseTime = state.timePerQ;
+  } else {
+    const elapsedMs = Date.now() - (state.questionStartTime || Date.now());
+    responseTime = Math.round((elapsedMs / 1000) * 100) / 100; // 소수점 2자리
+    // 0.01 미만은 측정 노이즈로 보고 0.01로 보정
+    if (responseTime < 0.01) responseTime = 0.01;
+  }
+  state.sessionAttempts.push({
+    question: `${q.a}×${q.b}`,
+    a: q.a,
+    b: q.b,
+    isCorrect: isCorrect,
+    responseTime: responseTime,
+    isTimeout: isTimeout,
+  });
+
+  if (!isCorrect) {
+    state.wrongQuestions.push({ ...q, userAnswer: isTimeout ? null : userAnswer });
+  }
+
+  showFeedback(isCorrect, isTimeout, q.answer);
+
+  setTimeout(() => {
+    state.currentIdx++;
+    if (state.currentIdx >= state.questions.length) {
+      finishRound();
+    } else {
+      showQuestion();
+    }
+  }, 900);
+}
+
+function showFeedback(isCorrect, isTimeout, correctAnswer) {
+  const fb = document.getElementById('feedback');
+  const icon = document.getElementById('feedbackIcon');
+  const text = document.getElementById('feedbackText');
+
+  if (isCorrect) {
+    icon.textContent = ['🎉', '✨', '⭐', '🌟', '💫'][Math.floor(Math.random() * 5)];
+    text.textContent = ['정답!', '잘했어!', '좋아!', '훌륭해!', '굿!'][Math.floor(Math.random() * 5)];
+    text.style.color = 'var(--secondary)';
+  } else {
+    icon.textContent = isTimeout ? '⏰' : '❌';
+    text.textContent = isTimeout ? `시간초과! 정답: ${correctAnswer}` : `정답: ${correctAnswer}`;
+    text.style.color = 'var(--primary)';
+  }
+
+  fb.classList.add('show');
+  setTimeout(() => fb.classList.remove('show'), 800);
+}
+
+function finishRound() {
+  document.getElementById('progressFill').style.width = '100%';
+
+  const correctCount = state.questions.length - state.wrongQuestions.length;
+  const wrongCount = state.wrongQuestions.length;
+
+  if (wrongCount === 0) {
+    showFinalScreen();
+    return;
+  }
+
+  // 라운드 결과 표시
+  const isFirstRound = state.round === 1;
+  document.getElementById('resultEmoji').textContent = wrongCount <= 3 ? '🌟' : (wrongCount <= 10 ? '💪' : '🎯');
+  document.getElementById('resultTitle').textContent = `${state.round}차 시험 끝!`;
+  document.getElementById('resultSubtitle').textContent =
+    wrongCount <= 3 ? '거의 다 맞혔어! 조금만 더!' :
+    wrongCount <= 10 ? '잘했어! 다시 한 번 도전!' :
+    '괜찮아, 틀린 것만 다시 풀어보자!';
+
+  document.getElementById('correctNum').textContent = correctCount;
+  document.getElementById('wrongNum').textContent = wrongCount;
+
+  // 틀린 문제 목록
+  const grid = document.getElementById('wrongGrid');
+  grid.innerHTML = '';
+  state.wrongQuestions.forEach(q => {
+    const item = document.createElement('div');
+    item.className = 'wrong-item';
+    const yourAns = q.userAnswer === null ? '⏰' : q.userAnswer;
+    item.innerHTML = `${q.a} × ${q.b} = <span class="ans">${q.answer}</span><br><span class="your">내 답: ${yourAns}</span>`;
+    grid.appendChild(item);
+  });
+
+  showScreen('resultScreen');
+}
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  // 틀린 문제만으로 다시 시작
+  state.questions = shuffle(state.wrongQuestions.map(q => ({ a: q.a, b: q.b, answer: q.answer })));
+  state.wrongQuestions = [];
+  state.currentIdx = 0;
+  state.round++;
+
+  document.getElementById('roundBadge').textContent = `${state.round}차 시험`;
+  document.getElementById('qTotal').textContent = state.questions.length;
+
+  showScreen('quizScreen');
+  showQuestion();
+});
+
+document.getElementById('quitBtn').addEventListener('click', () => {
+  if (confirm('정말 처음으로 돌아갈까요? 진행 상황이 사라져요.')) {
+    resetToStart();
+  }
+});
+
+function showFinalScreen() {
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+
+  document.getElementById('finalRounds').textContent = state.round;
+  document.getElementById('finalQuestions').textContent = state.totalQuestionsAnswered;
+  document.getElementById('finalTime').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+
+  // [v3] 마스터리 섹션 초기 상태: 숨김
+  hideMasterySection();
+  showSavingIndicator(false);
+
+  showScreen('finalScreen');
+  fireConfetti();
+
+  // [v3] 백엔드에 결과 저장 (백그라운드, finalScreen 표시 후 진행)
+  // 프로필이 없거나 attempts가 없으면 스킵
+  if (state.currentProfile && state.sessionAttempts.length > 0) {
+    saveSessionResults().catch(err => {
+      console.error('[showFinalScreen] saveSessionResults 실패:', err);
+      // 토스트는 saveSessionResults 내부에서 이미 띄움
+    });
+  }
+}
+
+/**
+ * [v3] 시험 종료 후 백엔드에 모든 데이터 전송.
+ *   1. updateQuestionStatsBatch - 문제별 누적 통계
+ *   2. saveSession              - 1라운드 요약
+ *   3. updateSessionEnd         - 종료 시각 + 라운드 수
+ *
+ * 응답에서 마스터리 변경 정보를 받아 화면에 표시.
+ * 프로필 캐시(profileSessions, profileStats)도 갱신.
+ */
+async function saveSessionResults() {
+  showSavingIndicator(true);
+
+  try {
+    const profileId = state.currentProfile.id;
+    const items = state.sessionAttempts.slice(); // 복사본
+
+    // 1) 문제 통계 일괄 갱신
+    let masteryChanges = [];
+    let masterySummary = null;       // [v3.1] 진척도 카운트
+    try {
+      const batchResp = await api.post('updateQuestionStatsBatch', {
+        profileId: profileId,
+        items: items,
+      });
+      masteryChanges = (batchResp && batchResp.masteryChanges) || [];
+      masterySummary = (batchResp && batchResp.summary) || null;
+      state.sessionMasteryChanges = masteryChanges;
+    } catch (err) {
+      console.error('[saveSessionResults] batch 실패:', err);
+      ui.toast('문제 기록 저장 실패. 결과는 보여요!', 'error', 3000);
+    }
+
+    // 2) 1라운드 요약 통계 계산
+    // 처음 questionCount개의 attempts가 1라운드의 결과
+    const round1Items = items.slice(0, state.questionCount);
+    const round1Correct = round1Items.filter(it => it.isCorrect).length;
+    const round1Wrong = round1Items.length - round1Correct;
+    const round1AvgTime = (() => {
+      const corrects = round1Items.filter(it => it.isCorrect && it.responseTime > 0);
+      if (corrects.length === 0) return 0;
+      const sum = corrects.reduce((acc, it) => acc + it.responseTime, 0);
+      return Math.round((sum / corrects.length) * 100) / 100;
+    })();
+    const round1Accuracy = round1Items.length > 0
+      ? Math.round((round1Correct / round1Items.length) * 1000) / 10  // 소수점 1자리
+      : 0;
+
+    // 3) saveSession (1라운드 데이터)
+    let sessionId = null;
+    try {
+      const saveResp = await api.post('saveSession', {
+        profileId: profileId,
+        startedAt: state.sessionStartedAt,
+        totalQ: round1Items.length,
+        correctCnt: round1Correct,
+        wrongCnt: round1Wrong,
+        accuracy: round1Accuracy,
+        avgTime: round1AvgTime,
+        settings: {
+          dans: state.selectedDans,
+          timePerQ: state.timePerQ,
+          questionCount: state.questionCount,
+          allowDuplicates: state.allowDuplicates,
+          mode: 'normal',
+        },
+      });
+      sessionId = saveResp && saveResp.sessionId;
+
+      // 출석 정보 갱신 → 현재 프로필에 반영
+      if (saveResp && saveResp.attendance && saveResp.attendance.changed) {
+        state.currentProfile.lastDate = saveResp.attendance.lastDate;
+        state.currentProfile.streak = saveResp.attendance.streak;
+        state.currentProfile.totalDays = saveResp.attendance.totalDays;
+        // 프로필 목록 캐시도 동기화
+        const idx = state.profiles.findIndex(p => p.id === profileId);
+        if (idx >= 0) {
+          state.profiles[idx] = { ...state.profiles[idx], ...saveResp.attendance };
+          cache.set(LS_KEY.PROFILES_CACHE, state.profiles);
+        }
+      }
+    } catch (err) {
+      console.error('[saveSessionResults] saveSession 실패:', err);
+      ui.toast('세션 저장 실패. 결과는 보여요!', 'error', 3000);
+    }
+
+    // 4) updateSessionEnd (종료 시각 + 라운드 수)
+    if (sessionId) {
+      try {
+        await api.post('updateSessionEnd', {
+          profileId: profileId,
+          sessionId: sessionId,
+          endedAt: new Date().toISOString(),
+          roundCount: state.round,
+        });
+      } catch (err) {
+        console.error('[saveSessionResults] updateSessionEnd 실패:', err);
+        // 결정적 오류 아님 — 사용자에게 알리지 않음
+      }
+    }
+
+    // 5) 마스터리 섹션 표시 (변경이 있을 때만)
+    showMasterySection(masteryChanges, masterySummary);
+
+    // 6) 프로필 데이터 캐시 무효화 (다음 진입 시 자동 동기화됨)
+    cache.remove(LS_KEY.LAST_MODIFIED(profileId));
+
+  } finally {
+    showSavingIndicator(false);
+  }
+}
+
+/**
+ * [v3] finalScreen 상단에 "기록 저장 중..." 작은 인디케이터 표시.
+ */
+function showSavingIndicator(show) {
+  const el = document.getElementById('finalSavingIndicator');
+  if (!el) return;
+  el.style.display = show ? 'flex' : 'none';
+}
+
+/**
+ * [v3.1] 마스터리 섹션 표시.
+ *
+ * 표시 규칙:
+ *   - 승급 있음 → 한 줄 메시지 + 승급 칩 섹션
+ *   - 승급 없음 → 격려 메시지 ("기록이 쌓이고 있어요!")
+ *   - 진척도 카운트는 summary가 있으면 항상 표시
+ *
+ * @param {Array}  changes  마스터리 변경 목록 [{ question, prev, next }]
+ * @param {object} summary  진척도 카운트 { seedling, growing, master, total }
+ */
+function showMasterySection(changes, summary) {
+  const oneLine = document.getElementById('masteryOneLine');
+  const detail = document.getElementById('masteryDetail');
+  const encourage = document.getElementById('masteryEncourage');
+  const progress = document.getElementById('masteryProgress');
+  if (!oneLine || !detail || !encourage || !progress) return;
+
+  // 일단 모두 숨김
+  oneLine.style.display = 'none';
+  detail.style.display = 'none';
+  encourage.style.display = 'none';
+  progress.style.display = 'none';
+
+  // 부정 변경(강등) 제외
+  const positives = (changes || []).filter(c => isPositiveMasteryChange(c.prev, c.next));
+
+  if (positives.length > 0) {
+    // ==== 승급 있음 ====
+    const newMasters = positives.filter(c => c.next === 'master').map(c => c.question);
+    const newGrowings = positives.filter(c => c.next === 'growing').map(c => c.question);
+
+    // 한 줄 메시지
+    let msg = '';
+    if (newMasters.length > 0) {
+      msg = `오늘 ${newMasters.length}개를 마스터했어요! 🌳`;
+    } else if (newGrowings.length > 0) {
+      msg = `오늘 ${newGrowings.length}개가 자라고 있어요! 🌿`;
+    }
+    oneLine.textContent = msg;
+    oneLine.style.display = 'block';
+
+    // 자세한 섹션 (칩)
+    const masterListEl = document.getElementById('masteryMasterList');
+    const growingListEl = document.getElementById('masteryGrowingList');
+    const masterBlock = document.getElementById('masteryMasterBlock');
+    const growingBlock = document.getElementById('masteryGrowingBlock');
+
+    if (newMasters.length > 0) {
+      masterListEl.innerHTML = newMasters.map(q => `<span class="mastery-chip">✨ ${escapeHtml(q)}</span>`).join('');
+      masterBlock.style.display = 'block';
+    } else {
+      masterBlock.style.display = 'none';
+    }
+
+    if (newGrowings.length > 0) {
+      growingListEl.innerHTML = newGrowings.map(q => `<span class="mastery-chip growing">💚 ${escapeHtml(q)}</span>`).join('');
+      growingBlock.style.display = 'block';
+    } else {
+      growingBlock.style.display = 'none';
+    }
+
+    detail.style.display = 'flex';
+    detail.style.flexDirection = 'column';
+  } else {
+    // ==== 승급 없음 ==== — 격려 메시지
+    encourage.style.display = 'block';
+  }
+
+  // ==== 진척도 카운트 (항상 표시, summary가 있을 때) ====
+  if (summary && typeof summary === 'object') {
+    document.getElementById('progressSeedling').textContent = summary.seedling || 0;
+    document.getElementById('progressGrowing').textContent  = summary.growing  || 0;
+    document.getElementById('progressMaster').textContent   = summary.master   || 0;
+    progress.style.display = 'flex';
+  }
+
+  // 등장 애니메이션
+  [oneLine, detail, encourage, progress].forEach(el => {
+    if (el && el.style.display !== 'none') {
+      el.classList.remove('mastery-fade-in');
+      void el.offsetWidth; // reflow
+      el.classList.add('mastery-fade-in');
+    }
+  });
+}
+
+function hideMasterySection() {
+  const oneLine = document.getElementById('masteryOneLine');
+  const detail = document.getElementById('masteryDetail');
+  const encourage = document.getElementById('masteryEncourage');
+  const progress = document.getElementById('masteryProgress');
+  if (oneLine) oneLine.style.display = 'none';
+  if (detail) detail.style.display = 'none';
+  if (encourage) encourage.style.display = 'none';
+  if (progress) progress.style.display = 'none';
+}
+
+/**
+ * 마스터리 변경이 긍정적인지 (승급) 판단.
+ * seedling < growing < master
+ */
+function isPositiveMasteryChange(prev, next) {
+  const order = { seedling: 0, growing: 1, master: 2 };
+  return (order[next] || 0) > (order[prev] || 0);
+}
+
+/**
+ * HTML 이스케이프 (간단판).
+ */
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+document.getElementById('restartBtn').addEventListener('click', resetToStart);
+
+function resetToStart() {
+  document.getElementById('roundBadge').textContent = '1차 시험';
+  // [v2.1 수정] showScreen만 호출하면 프로필 헤더가 비어있음.
+  // enterStartScreen()을 호출하여 헤더에 현재 프로필 정보를 채움.
+  if (typeof enterStartScreen === 'function' && state.currentProfile) {
+    enterStartScreen();
+  } else {
+    // 프로필이 없으면 (이상한 상태) 프로필 화면으로 폴백
+    if (typeof enterProfileScreen === 'function') {
+      enterProfileScreen();
+    } else {
+      showScreen('startScreen');
+    }
+  }
+}
+
+// ============== Confetti ==============
+function fireConfetti() {
+  const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#A78BFA', '#6EE7B7'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + '%';
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+      c.style.transform = `rotate(${Math.random() * 360}deg)`;
+      const fallTime = 2 + Math.random() * 2;
+      c.style.transition = `top ${fallTime}s linear, transform ${fallTime}s linear, opacity ${fallTime}s linear`;
+      document.body.appendChild(c);
+      requestAnimationFrame(() => {
+        c.style.top = '110vh';
+        c.style.transform = `rotate(${Math.random() * 720}deg)`;
+        c.style.opacity = '0';
+      });
+      setTimeout(() => c.remove(), fallTime * 1000);
+    }, i * 30);
+  }
+}
+
+
+
+// ============================================================
+// [v2 추가분 시작]
+// ============================================================
+// ============================================================
+// [v2 추가] JavaScript — API/캐시/프로필/모달/토스트/부트스트랩
+// 기존 v1 JS와 같은 <script> 블록 안에 함께 위치.
+// 통합 시:
+//   - 이 파일 내용을 기존 v1 JS의 적절한 위치에 병합
+//   - 기존 v1 부트스트랩 (DOMContentLoaded 직접 호출 부분)을 bootstrap()로 대체
+// ============================================================
+
+
+// ============================================================
+// 1. 상수 + 전역 state 확장
+// ============================================================
+
+const API_URL = "https://script.google.com/macros/s/AKfycbz7NjJUEjADIkVV4gSN9zpMs6K4hx1_guCsV8KFGXnsmigGWSXWDlxaufmItLi0JTpYzQ/exec";
+
+// 아바타 풀 (12개) — 동물 4 + 과일 4 + 자연/특수 4
+const AVATAR_POOL = [
+  "🦁", "🐯", "🐰", "🦄",
+  "🍎", "🍊", "🍇", "🍓",
+  "⭐", "🌈", "⚡", "🌸",
+];
+
+// localStorage 키
+const LS_KEY = {
+  LAST_PROFILE_ID: "gugudan.lastProfileId",
+  PROFILES_CACHE:  "gugudan.profiles",
+  PROFILE_DATA:    (id) => `gugudan.profile.${id}`,
+  LAST_MODIFIED:   (id) => `gugudan.lastMod.${id}`,
+};
+
+// state는 v1에서 이미 정의된 객체. 여기서 필드만 추가.
+// 통합 시 v1의 `const state = {...};` 객체 정의에 아래 필드를 합쳐야 함.
+//
+// 현재 추가되는 필드:
+//   currentProfile  : 선택된 프로필 객체 ({ id, name, avatar, ... })
+//   profiles        : 전체 프로필 목록
+//   profileSessions : 캐시된 세션 (3단계에서 활용)
+//   profileStats    : 캐시된 문제 통계 (3단계에서 활용)
+//   isOnline        : 네트워크 상태
+//
+// 예시 (v1 통합 시):
+//   const state = {
+//     // ... 기존 필드 ...
+//     currentProfile: null,
+//     profiles: [],
+//     profileSessions: [],
+//     profileStats: [],
+//     isOnline: navigator.onLine,
+//   };
+
+
+// ============================================================
+// 2. API 헬퍼
+// ============================================================
+
+const api = {
+  /**
+   * GET 요청.
+   * @param {string} action  액션 이름 (예: "getProfiles")
+   * @param {object} params  쿼리 파라미터
+   * @returns {Promise<any>} data 필드만 반환. 에러 시 throw.
+   */
+  async get(action, params = {}) {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", action);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") {
+        url.searchParams.set(k, v);
+      }
+    });
+
+    const res = await fetch(url.toString(), { method: "GET" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "알 수 없는 에러");
+    return json.data;
+  },
+
+  /**
+   * POST 요청.
+   * Apps Script CORS 회피를 위해 Content-Type을 text/plain으로 보냄.
+   * 백엔드에서는 e.postData.contents를 JSON.parse하므로 영향 없음.
+   *
+   * @param {string} action   액션 이름 (예: "createProfile")
+   * @param {object} payload  요청 본문 데이터
+   * @returns {Promise<any>}  data 필드만 반환. 에러 시 throw.
+   */
+  async post(action, payload = {}) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, payload }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "알 수 없는 에러");
+    return json.data;
+  },
+};
+
+
+// ============================================================
+// 3. localStorage 캐시 헬퍼
+// ============================================================
+
+const cache = {
+  get(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn("[cache.get] 파싱 실패:", key, e);
+      return null;
+    }
+  },
+
+  set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      console.warn("[cache.set] 저장 실패:", key, e);
+      return false;
+    }
+  },
+
+  remove(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) { /* ignore */ }
+  },
+
+  /** 모든 프로필 관련 캐시 정리 (특정 프로필 삭제 시) */
+  clearProfile(profileId) {
+    this.remove(LS_KEY.PROFILE_DATA(profileId));
+    this.remove(LS_KEY.LAST_MODIFIED(profileId));
+  },
+};
+
+
+// ============================================================
+// 4. UI 유틸 (토스트 / 로딩 / 동기화 인디케이터)
+// ============================================================
+
+const ui = {
+  /**
+   * 토스트 알림 표시.
+   * @param {string} message
+   * @param {"info"|"success"|"error"|"sync"} type
+   * @param {number} duration  ms (기본 2500)
+   */
+  toast(message, type = "info", duration = 2500) {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+
+    const iconMap = {
+      info: "💬", success: "✨", error: "⚠️", sync: "🔄",
+    };
+
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.innerHTML = `
+      <span class="icon">${iconMap[type] || "💬"}</span>
+      <span class="message"></span>
+    `;
+    el.querySelector(".message").textContent = message;
+    container.appendChild(el);
+
+    setTimeout(() => {
+      el.classList.add("fade-out");
+      setTimeout(() => el.remove(), 300);
+    }, duration);
+  },
+
+  /** 전체 로딩 오버레이 표시 (블로킹) */
+  loading(show, text = "잠깐만 기다려줘...") {
+    const overlay = document.getElementById("loadingOverlay");
+    const textEl = document.getElementById("loadingText");
+    if (!overlay) return;
+    if (show) {
+      if (textEl) textEl.textContent = text;
+      overlay.classList.add("active");
+    } else {
+      overlay.classList.remove("active");
+    }
+  },
+
+  /** 작은 동기화 인디케이터 표시 (백그라운드) */
+  sync(show) {
+    const el = document.getElementById("syncIndicator");
+    if (!el) return;
+    el.classList.toggle("active", show);
+  },
+
+  /**
+   * [v2.1] 스크롤 힌트 표시 ("↓ 아래로 내려봐!")
+   * 콘텐츠가 화면보다 길고, 아직 스크롤하지 않은 경우에만 표시.
+   * 스크롤 발생 시 자동 숨김.
+   */
+  showScrollHint() {
+    const el = document.getElementById("scrollHint");
+    if (!el) return;
+
+    // 화면이 충분히 길어 스크롤이 필요한 경우에만 표시
+    const needsScroll = document.documentElement.scrollHeight > window.innerHeight + 20;
+    if (!needsScroll) {
+      el.classList.remove("active", "fade-out");
+      return;
+    }
+
+    el.classList.remove("fade-out");
+    el.classList.add("active");
+
+    // 스크롤 시 즉시 숨김 (한 번만 발동)
+    const onScroll = () => {
+      ui.hideScrollHint();
+      window.removeEventListener("scroll", onScroll);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    // 핸들러 참조를 저장해 hideScrollHint에서 정리 가능하게
+    el._scrollHandler = onScroll;
+  },
+
+  /** [v2.1] 스크롤 힌트 즉시 숨김 */
+  hideScrollHint() {
+    const el = document.getElementById("scrollHint");
+    if (!el) return;
+    el.classList.add("fade-out");
+    // 페이드 애니메이션 후 완전히 숨김
+    setTimeout(() => {
+      el.classList.remove("active", "fade-out");
+    }, 300);
+    // 스크롤 핸들러 정리
+    if (el._scrollHandler) {
+      window.removeEventListener("scroll", el._scrollHandler);
+      el._scrollHandler = null;
+    }
+  },
+};
+
+
+// ============================================================
+// 5. 화면 전환 유틸
+// ============================================================
+
+/**
+ * 모든 .screen에서 .active를 제거하고 지정된 화면에만 활성.
+ * 기존 v1의 화면 전환 로직과 동일한 패턴.
+ */
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => {
+    s.classList.toggle("active", s.id === id);
+  });
+
+  // [v2.1] startScreen이 아닌 다른 화면으로 갈 땐 스크롤 힌트 즉시 숨김
+  if (id !== "startScreen" && typeof ui !== "undefined" && ui.hideScrollHint) {
+    ui.hideScrollHint();
+  }
+}
+
+
+// ============================================================
+// 6. 프로필 시스템 핵심 로직
+// ============================================================
+
+/**
+ * 프로필 화면 진입 시 호출.
+ *   1. 캐시에서 즉시 표시
+ *   2. 백그라운드로 서버 동기화
+ */
+async function enterProfileScreen() {
+  showScreen("profileScreen");
+
+  // 에러 패널 숨김
+  const errPanel = document.getElementById("profileLoadError");
+  if (errPanel) errPanel.style.display = "none";
+
+  // 1. 캐시에서 즉시 표시
+  const cached = cache.get(LS_KEY.PROFILES_CACHE);
+  if (cached && Array.isArray(cached)) {
+    state.profiles = cached;
+    renderProfileGrid();
+  } else {
+    // 캐시 없으면 빈 그리드 (로딩 중)
+    state.profiles = [];
+    renderProfileGrid(true /* loading */);
+  }
+
+  // 2. 백그라운드 동기화
+  await syncProfiles();
+}
+
+/**
+ * 서버에서 프로필 목록 가져와 캐시 갱신 + UI 새로고침.
+ */
+async function syncProfiles() {
+  ui.sync(true);
+  try {
+    const profiles = await api.get("getProfiles");
+    state.profiles = profiles;
+    cache.set(LS_KEY.PROFILES_CACHE, profiles);
+    renderProfileGrid();
+
+    // 에러 패널 숨김 (이전 실패 후 성공한 경우)
+    const errPanel = document.getElementById("profileLoadError");
+    if (errPanel) errPanel.style.display = "none";
+
+  } catch (err) {
+    console.error("[syncProfiles] 실패:", err);
+    showProfileLoadError(err.message);
+  } finally {
+    ui.sync(false);
+  }
+}
+
+/**
+ * 프로필 목록 로드 실패 시 에러 패널 표시.
+ */
+function showProfileLoadError(message) {
+  const errPanel = document.getElementById("profileLoadError");
+  const errMsg = document.getElementById("profileLoadErrorMsg");
+  if (!errPanel) return;
+
+  // 캐시가 있으면 에러 토스트만, 없으면 에러 패널
+  if (state.profiles.length > 0) {
+    ui.toast("새로고침 못했어. 저장된 친구만 보여!", "error", 3000);
+  } else {
+    if (errMsg) errMsg.textContent = message || "인터넷이 잘 되는지 확인해줘!";
+    errPanel.style.display = "block";
+  }
+}
+
+/**
+ * 프로필 그리드 렌더링.
+ * @param {boolean} loading  서버 로딩 중 (캐시도 없는 경우)
+ */
+function renderProfileGrid(loading = false) {
+  const grid = document.getElementById("profileGrid");
+  const empty = document.getElementById("profileEmptyState");
+  if (!grid) return;
+
+  grid.innerHTML = "";
+
+  // 빈 상태 처리
+  if (state.profiles.length === 0) {
+    if (empty) empty.style.display = loading ? "none" : "block";
+  } else {
+    if (empty) empty.style.display = "none";
+  }
+
+  // 프로필 카드들
+  state.profiles.forEach(p => {
+    grid.appendChild(buildProfileCard(p));
+  });
+
+  // "+ 새 친구 추가" 카드는 항상 마지막에
+  if (!loading) {
+    grid.appendChild(buildAddCard());
+  }
+}
+
+/**
+ * 프로필 카드 DOM 생성.
+ */
+function buildProfileCard(profile) {
+  const card = document.createElement("div");
+  card.className = "profile-card";
+  card.dataset.profileId = profile.id;
+
+  const streakText = profile.streak > 0
+    ? `🔥 ${profile.streak}일 연속`
+    : "친구를 기다리고 있어";
+  const streakClass = profile.streak > 0 ? "streak active" : "streak";
+
+  card.innerHTML = `
+    <button class="menu-btn" aria-label="메뉴">⋯</button>
+    <div class="avatar"></div>
+    <div class="name"></div>
+    <div class="${streakClass}"></div>
+  `;
+
+  // textContent로 안전하게 입력 (이름에 특수문자 방어)
+  card.querySelector(".avatar").textContent = profile.avatar || "🦄";
+  card.querySelector(".name").textContent = profile.name || "친구";
+  card.querySelector(".streak").textContent = streakText;
+
+  // 카드 클릭 → 환영 화면
+  card.addEventListener("click", (e) => {
+    // 메뉴 버튼 클릭은 별도 처리
+    if (e.target.closest(".menu-btn")) return;
+    selectProfile(profile);
+  });
+
+  // 점 3개 메뉴 버튼
+  const menuBtn = card.querySelector(".menu-btn");
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    showProfileMenuSheet(profile);
+  });
+
+  return card;
+}
+
+/**
+ * "+ 새 친구 추가" 카드 생성.
+ */
+function buildAddCard() {
+  const card = document.createElement("div");
+  card.className = "profile-card add-card";
+  card.innerHTML = `
+    <div class="plus-icon">+</div>
+    <div class="label">새 친구 추가</div>
+  `;
+  card.addEventListener("click", () => {
+    showCreateProfileModal();
+  });
+  return card;
+}
+
+/**
+ * 프로필 선택 → 환영 화면 진입.
+ */
+function selectProfile(profile) {
+  state.currentProfile = profile;
+  cache.set(LS_KEY.LAST_PROFILE_ID, profile.id);
+  enterWelcomeScreen();
+}
+
+/**
+ * 환영 화면 진입 + 백그라운드 데이터 로드.
+ */
+async function enterWelcomeScreen() {
+  const p = state.currentProfile;
+  if (!p) return;
+
+  showScreen("welcomeScreen");
+
+  // 1. 아바타 + 인사 표시
+  document.getElementById("welcomeAvatar").textContent = p.avatar || "🦄";
+  document.getElementById("welcomeGreeting").textContent = `안녕, ${p.name}! 👋`;
+
+  // 2. 메시지 (streak 기반)
+  const msgEl = document.getElementById("welcomeMessage");
+  if (p.streak > 0) {
+    msgEl.innerHTML = `<span class="streak-fire">🔥 ${p.streak}일 연속</span> 도전 중이야! 오늘도 화이팅!`;
+  } else {
+    msgEl.textContent = "오늘부터 시작해볼까?";
+  }
+
+  // 3. 통계 (3단계에서 sessions 로드 후 표시. 지금은 기본 정보만)
+  const statsEl = document.getElementById("welcomeStats");
+  if (p.totalDays > 0) {
+    document.getElementById("welcomeTotalDays").textContent = p.totalDays;
+    // 시험 횟수는 캐시된 sessions가 있으면 표시
+    const profileData = cache.get(LS_KEY.PROFILE_DATA(p.id));
+    const sessionCount = (profileData && profileData.sessions) ? profileData.sessions.length : 0;
+    document.getElementById("welcomeSessionCount").textContent = sessionCount;
+    statsEl.style.display = "grid";
+  } else {
+    statsEl.style.display = "none";
+  }
+
+  // 4. 백그라운드: 프로필 데이터 풀 로드 (3단계 대비)
+  syncProfileData(p.id).catch(err => {
+    console.warn("[enterWelcomeScreen] 데이터 동기화 실패:", err);
+    // 환영 화면 진행은 막지 않음 (캐시로 작동)
+  });
+}
+
+/**
+ * 프로필 풀 데이터 동기화 (sessions + stats).
+ * lastModified 비교 후 변경 시에만 풀 로드.
+ */
+async function syncProfileData(profileId) {
+  ui.sync(true);
+  try {
+    const cachedLastMod = cache.get(LS_KEY.LAST_MODIFIED(profileId));
+    const result = await api.get("getLastModified", { profileId });
+    const serverLastMod = result.lastModified;
+
+    if (!serverLastMod) {
+      // 서버에 데이터 없음 (신규 프로필)
+      cache.set(LS_KEY.PROFILE_DATA(profileId), { sessions: [], stats: [] });
+      cache.set(LS_KEY.LAST_MODIFIED(profileId), null);
+      state.profileSessions = [];
+      state.profileStats = [];
+      return;
+    }
+
+    if (cachedLastMod === serverLastMod) {
+      // 변경 없음 — 캐시 그대로 사용
+      const cached = cache.get(LS_KEY.PROFILE_DATA(profileId)) || { sessions: [], stats: [] };
+      state.profileSessions = cached.sessions || [];
+      state.profileStats = cached.stats || [];
+      return;
+    }
+
+    // 변경 감지 → 풀 로드
+    const data = await api.get("getAllProfileData", { profileId });
+    state.profileSessions = data.sessions || [];
+    state.profileStats = data.stats || [];
+
+    cache.set(LS_KEY.PROFILE_DATA(profileId), {
+      sessions: state.profileSessions,
+      stats:    state.profileStats,
+    });
+    cache.set(LS_KEY.LAST_MODIFIED(profileId), serverLastMod);
+
+    // 캐시가 이미 있었던 경우만 토스트 (첫 로드에는 표시 안 함)
+    if (cachedLastMod) {
+      ui.toast("데이터 새로고침 완료!", "sync", 1500);
+    }
+  } finally {
+    ui.sync(false);
+  }
+}
+
+/**
+ * 환영 화면 → 시험 옵션 화면 (기존 startScreen).
+ */
+function enterStartScreen() {
+  const p = state.currentProfile;
+  if (!p) {
+    enterProfileScreen();
+    return;
+  }
+
+  // 헤더 갱신
+  document.getElementById("startHeaderAvatar").textContent = p.avatar || "🦄";
+  document.getElementById("startGreeting").textContent = `${p.name}!`;
+  const sub = document.getElementById("startSub");
+  if (p.streak > 0) {
+    sub.textContent = `🔥 ${p.streak}일 연속`;
+  } else {
+    sub.textContent = "오늘도 화이팅";
+  }
+
+  showScreen("startScreen");
+
+  // [v2.1] 화면 맨 위로 스크롤 후 힌트 표시
+  // (이전 스크롤 위치가 남아있으면 힌트가 무의미해질 수 있음)
+  window.scrollTo({ top: 0, behavior: "instant" });
+  // 약간 지연 후 힌트 — 화면 전환 애니메이션 끝난 다음에
+  setTimeout(() => ui.showScrollHint(), 500);
+}
+
+
+// ============================================================
+// 7. 모달 시스템
+// ============================================================
+
+/**
+ * 모달 오버레이를 띄운다.
+ * @param {Node} contentNode  modal-card 또는 menu-sheet 노드
+ * @param {function} onClose  닫힐 때 콜백 (선택)
+ */
+function openModal(contentNode, onClose) {
+  const overlay = document.getElementById("modalOverlay");
+  if (!overlay) return;
+
+  overlay.innerHTML = "";
+  overlay.appendChild(contentNode);
+  overlay.classList.add("active");
+  document.body.style.overflow = "hidden";
+
+  // 오버레이 클릭(컨텐츠 외부) → 닫기
+  const handleOverlayClick = (e) => {
+    if (e.target === overlay) {
+      closeModal();
+      if (onClose) onClose("dismiss");
+    }
+  };
+  overlay.addEventListener("click", handleOverlayClick);
+
+  // ESC → 닫기
+  const handleEsc = (e) => {
+    if (e.key === "Escape") {
+      closeModal();
+      if (onClose) onClose("dismiss");
+    }
+  };
+  document.addEventListener("keydown", handleEsc);
+
+  // 정리 함수 저장 (closeModal에서 사용)
+  overlay._cleanup = () => {
+    overlay.removeEventListener("click", handleOverlayClick);
+    document.removeEventListener("keydown", handleEsc);
+  };
+}
+
+function closeModal() {
+  const overlay = document.getElementById("modalOverlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  document.body.style.overflow = "";
+  if (overlay._cleanup) {
+    overlay._cleanup();
+    overlay._cleanup = null;
+  }
+  // 약간 후 내용 정리 (애니메이션 완료 후)
+  setTimeout(() => {
+    if (!overlay.classList.contains("active")) overlay.innerHTML = "";
+  }, 250);
+}
+
+/**
+ * 프로필 만들기 모달.
+ */
+function showCreateProfileModal() {
+  const tpl = document.getElementById("tplCreateProfileModal");
+  const node = tpl.content.firstElementChild.cloneNode(true);
+
+  const nameInput = node.querySelector('[data-input="name"]');
+  const avatarGrid = node.querySelector('[data-grid="avatars"]');
+  const confirmBtn = node.querySelector('[data-action="confirm"]');
+  const cancelBtn = node.querySelector('[data-action="cancel"]');
+
+  let selectedAvatar = null;
+
+  // 아바타 옵션 생성
+  AVATAR_POOL.forEach(emoji => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "avatar-option";
+    btn.textContent = emoji;
+    btn.addEventListener("click", () => {
+      avatarGrid.querySelectorAll(".avatar-option").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selectedAvatar = emoji;
+      updateConfirmState();
+    });
+    avatarGrid.appendChild(btn);
+  });
+
+  function updateConfirmState() {
+    const nameOk = nameInput.value.trim().length > 0;
+    const avatarOk = !!selectedAvatar;
+    confirmBtn.disabled = !(nameOk && avatarOk);
+  }
+
+  nameInput.addEventListener("input", updateConfirmState);
+
+  cancelBtn.addEventListener("click", () => closeModal());
+
+  confirmBtn.addEventListener("click", async () => {
+    const name = nameInput.value.trim();
+    if (!name || !selectedAvatar) return;
+
+    confirmBtn.disabled = true;
+    cancelBtn.disabled = true;
+    closeModal();
+    ui.loading(true, "친구 만드는 중... ✨");
+
+    try {
+      const created = await api.post("createProfile", {
+        name: name,
+        avatar: selectedAvatar,
+      });
+      // 캐시/state 갱신 (서버 재호출 대신 응답 사용)
+      state.profiles.push(created);
+      cache.set(LS_KEY.PROFILES_CACHE, state.profiles);
+      renderProfileGrid();
+      ui.toast(`${created.name}(이)가 추가됐어! ${created.avatar}`, "success");
+    } catch (err) {
+      console.error("[createProfile] 실패:", err);
+      ui.toast("앗, 못 만들었어. 다시 해볼래?", "error", 3500);
+    } finally {
+      ui.loading(false);
+    }
+  });
+
+  openModal(node);
+
+  // 자동 포커스
+  setTimeout(() => nameInput.focus(), 100);
+}
+
+/**
+ * 프로필 메뉴 시트 (점 3개 클릭 또는 길게 누르기 시).
+ */
+function showProfileMenuSheet(profile) {
+  const tpl = document.getElementById("tplProfileMenuSheet");
+  const node = tpl.content.firstElementChild.cloneNode(true);
+
+  node.querySelector('[data-fill="name"]').textContent = profile.name;
+
+  node.querySelector('[data-action="delete"]').addEventListener("click", () => {
+    closeModal();
+    setTimeout(() => showConfirmDeleteModal(profile), 150);
+  });
+
+  node.querySelector('[data-action="cancel"]').addEventListener("click", () => closeModal());
+
+  openModal(node);
+}
+
+/**
+ * 삭제 확인 모달.
+ */
+function showConfirmDeleteModal(profile) {
+  const tpl = document.getElementById("tplConfirmDeleteModal");
+  const node = tpl.content.firstElementChild.cloneNode(true);
+
+  node.querySelector('[data-fill="name"]').textContent = profile.name;
+
+  node.querySelector('[data-action="cancel"]').addEventListener("click", () => closeModal());
+
+  node.querySelector('[data-action="confirm"]').addEventListener("click", async () => {
+    closeModal();
+    ui.loading(true, "삭제하는 중...");
+
+    try {
+      await api.post("deleteProfile", { profileId: profile.id });
+      // 로컬에서도 제거
+      state.profiles = state.profiles.filter(p => p.id !== profile.id);
+      cache.set(LS_KEY.PROFILES_CACHE, state.profiles);
+      cache.clearProfile(profile.id);
+
+      // 마지막 사용 프로필이 이 프로필이었다면 정리
+      const lastId = cache.get(LS_KEY.LAST_PROFILE_ID);
+      if (lastId === profile.id) {
+        cache.remove(LS_KEY.LAST_PROFILE_ID);
+      }
+
+      renderProfileGrid();
+      ui.toast(`${profile.name}(을)를 삭제했어`, "info");
+    } catch (err) {
+      console.error("[deleteProfile] 실패:", err);
+      ui.toast("앗, 못 지웠어. 다시 해볼래?", "error", 3500);
+    } finally {
+      ui.loading(false);
+    }
+  });
+
+  openModal(node);
+}
+
+
+// ============================================================
+// 8. 부트스트랩 (앱 시작 시)
+// ============================================================
+
+/**
+ * 앱 시작 흐름.
+ *   1. 마지막 사용 프로필이 있으면:
+ *        a. 캐시된 프로필 목록에서 그 프로필 찾기
+ *        b. 있으면 환영 화면으로 자동 진입
+ *        c. 동시에 백그라운드 동기화
+ *   2. 없으면 프로필 선택 화면으로
+ */
+async function bootstrap() {
+  // 이벤트 리스너 부착 (한 번만)
+  attachStaticEventListeners();
+
+  const lastProfileId = cache.get(LS_KEY.LAST_PROFILE_ID);
+  const cachedProfiles = cache.get(LS_KEY.PROFILES_CACHE);
+
+  if (lastProfileId && cachedProfiles && Array.isArray(cachedProfiles)) {
+    const lastProfile = cachedProfiles.find(p => p.id === lastProfileId);
+    if (lastProfile) {
+      state.profiles = cachedProfiles;
+      state.currentProfile = lastProfile;
+
+      // 환영 화면으로 즉시 진입 (캐시 기반)
+      enterWelcomeScreen();
+
+      // 백그라운드: 프로필 목록 갱신
+      syncProfiles().catch(err => {
+        console.warn("[bootstrap] 프로필 동기화 실패:", err);
+      });
+      return;
+    }
+  }
+
+  // 일반 시작: 프로필 화면
+  await enterProfileScreen();
+}
+
+/**
+ * 정적 요소(템플릿 외 항상 존재하는 DOM)에 이벤트 리스너 1회 부착.
+ */
+function attachStaticEventListeners() {
+  // 환영 화면 버튼
+  const startBtn = document.getElementById("welcomeStartBtn");
+  if (startBtn) startBtn.addEventListener("click", () => enterStartScreen());
+
+  const backBtn = document.getElementById("welcomeBackBtn");
+  if (backBtn) backBtn.addEventListener("click", () => enterProfileScreen());
+
+  // 시험 옵션 화면 헤더 — 다른 친구로
+  const startBack = document.getElementById("startBackBtn");
+  if (startBack) startBack.addEventListener("click", () => enterProfileScreen());
+
+  // 프로필 화면 재시도
+  const retryBtn = document.getElementById("profileLoadRetryBtn");
+  if (retryBtn) retryBtn.addEventListener("click", () => syncProfiles());
+
+  // [v2.1] 결과/최종 화면에서 "다른 친구로" 버튼
+  const resultBack = document.getElementById("resultBackToProfileBtn");
+  if (resultBack) resultBack.addEventListener("click", () => {
+    if (confirm('다른 친구 화면으로 갈까요? 진행 상황이 사라져요.')) {
+      enterProfileScreen();
+    }
+  });
+  const finalBack = document.getElementById("finalBackToProfileBtn");
+  if (finalBack) finalBack.addEventListener("click", () => enterProfileScreen());
+  const danSelectAll = document.getElementById("danSelectAll");
+  if (danSelectAll) danSelectAll.addEventListener("click", () => {
+    document.querySelectorAll('.dan-btn').forEach(b => b.classList.add('selected'));
+    if (typeof updateInfo === 'function') updateInfo();
+  });
+  const danSelectNone = document.getElementById("danSelectNone");
+  if (danSelectNone) danSelectNone.addEventListener("click", () => {
+    document.querySelectorAll('.dan-btn').forEach(b => b.classList.remove('selected'));
+    if (typeof updateInfo === 'function') updateInfo();
+  });
+
+  // 네트워크 상태
+  window.addEventListener("online",  () => { state.isOnline = true;  ui.toast("다시 연결됐어!", "success", 2000); });
+  window.addEventListener("offline", () => { state.isOnline = false; ui.toast("오프라인이야. 저장된 친구만 보여.", "info", 3000); });
+}
+
+// ============================================================
+// [v2 추가분 끝]
+// ============================================================
+
+// 초기 정보 업데이트 (v1 기존)
+updateInfo();
+
+// [v2] 부트스트랩 — 프로필 화면부터 시작
+bootstrap();
+</script>
+</body>
+</html>
