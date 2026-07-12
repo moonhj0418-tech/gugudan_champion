@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>구구단 챔피언 🏆</title>
 <!-- v5.1: 모바일 뒤로 가기 → 통합 메뉴 모달 + 스크롤 힌트 메시지 개선 -->
+<!-- v6: 문제 방식 변경 — 빈칸(□) 인수 맞히기. 빈칸 위치(앞/뒤/혼합) × 문제 형식(가로곱셈/거꾸로곱셈/가로나눗셈/세로나눗셈, 고급·다중선택). 개수·중복 옵션 제거 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
@@ -420,12 +421,57 @@
   }
   .question .op { color: var(--primary); margin: 0 8px; }
   .question .eq { color: var(--secondary); margin: 0 12px; }
+  /* [v6] ? → 네모칸(□) */
   .question .blank {
     display: inline-block;
-    min-width: 80px;
-    border-bottom: 6px solid var(--dark);
+    box-sizing: border-box;
+    min-width: 0.85em;
+    height: 1.02em;
+    border: 5px dashed var(--purple);
+    border-radius: 14px;
+    vertical-align: -0.16em;
+  }
+  .question .blank.filled {
+    border-style: solid;
+    height: auto;
+    padding: 0 0.12em;
     color: var(--purple);
   }
+
+  /* [v6] 세로 나눗셈 레이아웃 */
+  .question .long-div {
+    display: inline-flex;
+    align-items: flex-end;
+    font-size: 0.82em;
+    letter-spacing: 0;
+  }
+  .question .long-div .ld-divisor {
+    align-self: flex-end;
+    padding: 0 0.28em 0.12em 0;
+  }
+  .question .long-div .ld-col { display: flex; flex-direction: column; }
+  .question .long-div .ld-quotient {
+    text-align: center;
+    min-height: 1em;
+    padding-bottom: 0.06em;
+  }
+  .question .long-div .ld-dividend {
+    border-top: 5px solid var(--dark);
+    border-left: 5px solid var(--dark);
+    border-top-left-radius: 20px;
+    padding: 0.12em 0.35em 0 0.4em;
+    text-align: center;
+  }
+  .question .long-div .blank {
+    min-width: 0.7em;
+    height: 0.95em;
+    border-width: 4px;
+    vertical-align: middle;
+  }
+  .question .long-div .blank.filled { height: auto; }
+
+  /* [v6] 문제 형식 선택 */
+  .form-group { flex-wrap: wrap; }
 
   .answer-input {
     width: 100%;
@@ -2361,31 +2407,36 @@
     </div>
 
     <div class="option-group">
-      <div class="option-label"><span class="badge">2</span> 문제 개수</div>
-      <div class="pill-group" id="countGroup">
-        <button class="pill" data-count="20">20개</button>
-        <button class="pill" data-count="40">40개</button>
-        <button class="pill selected" data-count="80">80개</button>
-        <button class="pill" data-count="all">전체</button>
+      <div class="option-label"><span class="badge">2</span> 빈칸(네모칸) 출현 위치</div>
+      <div class="pill-group" id="blankGroup">
+        <button class="pill" data-blank="front">앞</button>
+        <button class="pill" data-blank="back">뒤</button>
+        <button class="pill selected" data-blank="mixed">혼합</button>
+      </div>
+      <div style="margin-top:8px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
+        앞 <b>□ × 5 = 15</b> · 뒤 <b>3 × □ = 15</b> · 혼합 랜덤
       </div>
     </div>
 
     <div class="option-group">
-      <div class="option-label"><span class="badge">3</span> 한 문제당 시간</div>
+      <div class="option-label"><span class="badge">3</span> 문제 형식</div>
+      <div class="pill-group form-group" id="formGroup">
+        <button class="pill selected" data-form="mul">가로 곱셈</button>
+        <button class="pill" data-form="mulRev">거꾸로 곱셈</button>
+        <button class="pill" data-form="divH">가로 나눗셈</button>
+        <button class="pill" data-form="divV">세로 나눗셈</button>
+      </div>
+      <div style="margin-top:6px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
+        여러 개 켜면 랜덤으로 섞여 나와요
+      </div>
+    </div>
+
+    <div class="option-group">
+      <div class="option-label"><span class="badge">4</span> 한 문제당 시간</div>
       <div class="pill-group" id="timeGroup">
         <button class="pill" data-time="5">5초</button>
         <button class="pill selected green" data-time="7">7초</button>
         <button class="pill" data-time="10">10초</button>
-      </div>
-    </div>
-
-    <div class="option-group">
-      <div class="checkbox-row" id="dupCheck">
-        <div class="checkbox-box"></div>
-        <div class="checkbox-text">
-          중복 문제 허용
-          <small>같은 문제가 여러 번 나올 수 있어요</small>
-        </div>
       </div>
     </div>
 
@@ -2416,7 +2467,7 @@
     </div>
 
     <div class="question" id="questionText">
-      <span>2</span><span class="op">×</span><span>3</span><span class="eq">=</span><span class="blank">?</span>
+      <span>2</span><span class="op">×</span><span class="blank"></span><span class="eq">=</span><span>6</span>
     </div>
 
     <input type="number" inputmode="numeric" pattern="[0-9]*" class="answer-input" id="answerInput" placeholder="?" autocomplete="off">
@@ -2858,9 +2909,9 @@ danBtns.forEach(btn => {
   });
 });
 
-document.querySelectorAll('#countGroup .pill').forEach(btn => {
+document.querySelectorAll('#blankGroup .pill').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('#countGroup .pill').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('#blankGroup .pill').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     updateInfo();
   });
@@ -2875,11 +2926,28 @@ document.querySelectorAll('#timeGroup .pill').forEach(btn => {
   });
 });
 
-const dupCheck = document.getElementById('dupCheck');
-dupCheck.addEventListener('click', () => {
-  dupCheck.classList.toggle('checked');
-  updateInfo();
+// [v6] 빈칸 위치 설정 읽기 (앞/뒤/혼합)
+function getBlankModeSetting() {
+  const sel = document.querySelector('#blankGroup .pill.selected');
+  return sel ? sel.dataset.blank : 'mixed';
+}
+
+// [v6] 문제 형식 다중 선택 (가로곱셈/거꾸로곱셈/가로나눗셈/세로나눗셈)
+document.querySelectorAll('#formGroup .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const selected = document.querySelectorAll('#formGroup .pill.selected');
+    // 마지막 하나는 끌 수 없음 (최소 1개 유지)
+    if (btn.classList.contains('selected') && selected.length === 1) return;
+    btn.classList.toggle('selected');
+    updateInfo();
+  });
 });
+
+// [v6] 선택된 문제 형식 배열 반환 (없으면 가로곱셈)
+function getFormModesSetting() {
+  const forms = Array.from(document.querySelectorAll('#formGroup .pill.selected')).map(b => b.dataset.form);
+  return forms.length ? forms : ['mul'];
+}
 
 function getSelectedDans() {
   return Array.from(document.querySelectorAll('.dan-btn.selected')).map(b => parseInt(b.dataset.dan));
@@ -2897,7 +2965,7 @@ function updateInfo() {
   const dans = getSelectedDans();
   const countSet = getCountSetting();
   const timeSet = getTimeSetting();
-  const allowDup = dupCheck.classList.contains('checked');
+  const allowDup = false; // [v6] 중복 허용 옵션 제거 — 항상 고유 문제
 
   const maxUnique = dans.length * 9; // 각 단에 ×1~×9
   let total;
@@ -2926,8 +2994,10 @@ function startQuiz() {
   if (state.selectedDans.length === 0) return;
 
   const countSet = getCountSetting();
-  state.allowDuplicates = dupCheck.classList.contains('checked');
+  state.allowDuplicates = false; // [v6] 중복 허용 옵션 제거
   state.timePerQ = getTimeSetting();
+  state.blankMode = getBlankModeSetting(); // [v6] 빈칸 위치: 'front' | 'back' | 'mixed'
+  state.formModes = getFormModesSetting(); // [v6] 문제 형식 배열: ['mul','mulRev','divH','divV'] 중
 
   // 문제 생성
   const allCombos = [];
@@ -2985,10 +3055,68 @@ function shuffle(arr) {
 // ============== 퀴즈 진행 ==============
 // [v3 정리] showScreen은 v2 추가분(아래 섹션 5)에 통합됨. 여기 v1 원본은 제거.
 
+/**
+ * [v6] 문제 HTML 생성.
+ *   a, b     : 곱셈 인수 (밑바탕 사실은 항상 a×b)
+ *   form     : 'mul'(가로곱셈) | 'mulRev'(거꾸로곱셈) | 'divH'(가로나눗셈) | 'divV'(세로나눗셈)
+ *   blankPos : 'a'(정답=a, 앞) | 'b'(정답=b, 뒤)
+ *   reveal   : null이면 빈칸(□), 값이 있으면 그 값을 채워 강조(오답 목록용)
+ *
+ * 일관 규칙: 어느 형식이든 blankPos 'a' → 정답 a(앞 숫자), 'b' → 정답 b(뒤 숫자).
+ */
+function buildQuestionHTML(a, b, form, blankPos, reveal) {
+  const P = a * b;
+  const ans = (blankPos === 'a') ? a : b;
+  const box = (reveal != null)
+    ? `<span class="blank filled">${ans}</span>`
+    : `<span class="blank"></span>`;
+  const num = (v) => `<span>${v}</span>`;
+  const A = (blankPos === 'a') ? box : num(a);
+  const B = (blankPos === 'b') ? box : num(b);
+
+  switch (form) {
+    case 'mulRev': // 거꾸로 곱셈: P = a × b
+      return `${num(P)}<span class="eq">=</span>${A}<span class="op">×</span>${B}`;
+
+    case 'divH': // 가로 나눗셈: 앞→ P ÷ □ = b, 뒤→ P ÷ a = □
+      return (blankPos === 'a')
+        ? `${num(P)}<span class="op">÷</span>${box}<span class="eq">=</span>${num(b)}`
+        : `${num(P)}<span class="op">÷</span>${num(a)}<span class="eq">=</span>${box}`;
+
+    case 'divV': { // 세로 나눗셈: 앞→나누는수 빈칸(몫 b 표시), 뒤→몫 빈칸(나누는수 a 표시)
+      const divisor  = (blankPos === 'a') ? box : num(a);
+      const quotient = (blankPos === 'a') ? num(b) : box;
+      return `<span class="long-div"><span class="ld-divisor">${divisor}</span>` +
+             `<span class="ld-col"><span class="ld-quotient">${quotient}</span>` +
+             `<span class="ld-dividend">${P}</span></span></span>`;
+    }
+
+    case 'mul': // 가로 곱셈: a × b = P
+    default:
+      return `${A}<span class="op">×</span>${B}<span class="eq">=</span>${num(P)}`;
+  }
+}
+
 function showQuestion() {
   const q = state.questions[state.currentIdx];
   const qEl = document.getElementById('questionText');
-  qEl.innerHTML = `<span>${q.a}</span><span class="op">×</span><span>${q.b}</span><span class="eq">=</span><span class="blank">?</span>`;
+
+  // [v6] 빈칸 위치 결정. front→'a'(정답 앞숫자), back→'b'(정답 뒤숫자), mixed→랜덤
+  let blank;
+  if (state.blankMode === 'front') blank = 'a';
+  else if (state.blankMode === 'back') blank = 'b';
+  else blank = Math.random() < 0.5 ? 'a' : 'b';
+
+  // [v6] 문제 형식 결정 (선택된 형식 중 랜덤)
+  const forms = state.formModes && state.formModes.length ? state.formModes : ['mul'];
+  const form = forms[Math.floor(Math.random() * forms.length)];
+
+  state.currentBlank = blank;
+  state.currentExpected = (blank === 'a') ? q.a : q.b;
+  q._blank = blank; // 결과 화면(틀린 문제)용 기록
+  q._form = form;
+
+  qEl.innerHTML = buildQuestionHTML(q.a, q.b, form, blank, null);
 
   document.getElementById('qCurrent').textContent = state.currentIdx + 1;
   const progress = ((state.currentIdx) / state.questions.length) * 100;
@@ -3063,7 +3191,8 @@ function handleAnswer(userAnswer) {
 
   const q = state.questions[state.currentIdx];
   const isTimeout = userAnswer === null;
-  const isCorrect = !isTimeout && userAnswer === q.answer;
+  const expected = state.currentExpected; // [v6] 정답은 빈칸에 들어갈 인수
+  const isCorrect = !isTimeout && userAnswer === expected;
 
   state.totalQuestionsAnswered++;
 
@@ -3091,7 +3220,7 @@ function handleAnswer(userAnswer) {
     state.wrongQuestions.push({ ...q, userAnswer: isTimeout ? null : userAnswer });
   }
 
-  showFeedback(isCorrect, isTimeout, q.answer);
+  showFeedback(isCorrect, isTimeout, expected);
 
   setTimeout(() => {
     state.currentIdx++;
@@ -3152,7 +3281,12 @@ function finishRound() {
     const item = document.createElement('div');
     item.className = 'wrong-item';
     const yourAns = q.userAnswer === null ? '⏰' : q.userAnswer;
-    item.innerHTML = `${q.a} × ${q.b} = <span class="ans">${q.answer}</span><br><span class="your">내 답: ${yourAns}</span>`;
+    // [v6] 빈칸형으로 표시 — 정답 인수를 강조
+    const product = q.a * q.b;
+    const eq = (q._blank === 'a')
+      ? `<span class="ans">${q.a}</span> × ${q.b} = ${product}`
+      : `${q.a} × <span class="ans">${q.b}</span> = ${product}`;
+    item.innerHTML = `${eq}<br><span class="your">내 답: ${yourAns}</span>`;
     grid.appendChild(item);
   });
 
@@ -3277,6 +3411,8 @@ async function saveSessionResultsQuiet() {
         timePerQ: state.timePerQ,
         questionCount: state.questionCount,
         allowDuplicates: state.allowDuplicates,
+        blankMode: state.blankMode,
+        formModes: state.formModes,
         mode: 'normal',
       },
     });
@@ -3310,6 +3446,8 @@ async function saveSessionResultsQuiet() {
           dans: state.selectedDans,
           timePerQ: state.timePerQ,
           questionCount: state.questionCount,
+          blankMode: state.blankMode,
+          formModes: state.formModes,
           allowDuplicates: state.allowDuplicates,
           mode: 'normal',
         },
@@ -3350,6 +3488,25 @@ async function saveSessionResultsQuiet() {
     }
   } catch (err) {
     console.warn('[saveSessionResultsQuiet] getLastModified 실패 (무시):', err.message || err);
+  }
+
+  // 5) [v6] 텔레그램 결과 전송 (자동, fire-and-forget — 실패해도 화면 영향 없음)
+  try {
+    const weak = [...new Set(round1Items.filter(it => !it.isCorrect).map(it => it.question))];
+    const elapsedSec = Math.floor((Date.now() - state.startTime) / 1000);
+    await api.post('sendTelegramResult', {
+      profileName: state.currentProfile.name,
+      date: formatLocalDateClient(new Date()),
+      correct: round1Correct,
+      total: round1Items.length,
+      accuracy: round1Accuracy,
+      rounds: state.round,
+      elapsedSec: elapsedSec,
+      avgTime: round1AvgTime,
+      weak: weak,
+    });
+  } catch (err) {
+    console.warn('[saveSessionResultsQuiet] 텔레그램 전송 실패 (무시):', err.message || err);
   }
 }
 
