@@ -6,7 +6,9 @@
     "allowMixedContent": false
   },
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "url": "https://moonhj0418-tech.github.io/gugudan_champion/",
+    "cleartext": false
   },
   "plugins": {
     "SplashScreen": {
