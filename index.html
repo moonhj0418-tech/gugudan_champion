@@ -18,6 +18,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="구구단">
 
+<!-- [v7] Firebase 웹 설정 (공개 값). 실제 보호는 Firestore 보안 규칙이 담당 -->
+<script src="firebase-config.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
@@ -4268,6 +4271,21 @@ const api = {
    * @returns {Promise<any>} data 필드만 반환. 에러 시 throw.
    */
   async get(action, params = {}) {
+    // [v7] 모든 읽기는 Firestore로 처리
+    switch (action) {
+      case "getProfiles":         return fstore.getProfiles();
+      case "getSessions":         return fstore.getSessions(params.profileId);
+      case "getQuestionStats":    return fstore.getQuestionStats(params.profileId);
+      case "getLastModified":     return fstore.getLastModified(params.profileId);
+      case "getAllProfileData":   return fstore.getAllProfileData(params.profileId);
+      case "getAllProfilesData":  return fstore.getAllProfilesData();
+      case "getAllLastModified":  return fstore.getAllLastModified();
+    }
+    return this._appsScriptGet(action, params);
+  },
+
+  /** 기존 Apps Script GET (현재는 사용처 없음, 호환용으로 보존) */
+  async _appsScriptGet(action, params = {}) {
     const url = new URL(API_URL);
     url.searchParams.set("action", action);
     Object.entries(params).forEach(([k, v]) => {
@@ -4293,6 +4311,19 @@ const api = {
    * @returns {Promise<any>}  data 필드만 반환. 에러 시 throw.
    */
   async post(action, payload = {}) {
+    // [v7] 데이터 쓰기는 Firestore로. 텔레그램만 기존 Apps Script 유지.
+    switch (action) {
+      case "createProfile":            return fstore.createProfile(payload);
+      case "deleteProfile":            return fstore.deleteProfile(payload);
+      case "saveSession":              return fstore.saveSession(payload);
+      case "updateSessionEnd":         return fstore.updateSessionEnd(payload);
+      case "updateQuestionStatsBatch": return fstore.updateQuestionStatsBatch(payload);
+    }
+    return this._appsScriptPost(action, payload);
+  },
+
+  /** 기존 Apps Script POST — 현재는 sendTelegramResult 전용 */
+  async _appsScriptPost(action, payload = {}) {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -4302,6 +4333,413 @@ const api = {
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || "알 수 없는 에러");
     return json.data;
+  },
+};
+
+
+// ============================================================
+// 2-B. [v7] Firestore 데이터 계층
+// ============================================================
+//
+// Apps Script + 시트를 대체한다. 화면/게임 로직은 그대로 두고
+// api.get / api.post 내부만 이쪽으로 갈아끼운다(호출부 무수정).
+//
+// 데이터 구조:
+//   profiles/{profileId}                  프로필 + 출석(lastDate/streak/totalDays)
+//   profiles/{profileId}/sessions/{id}    시험 세션
+//   profiles/{profileId}/qstats/{7x8}     문제별 누적 통계
+//
+// 텔레그램 전송(sendTelegramResult)만 기존 Apps Script를 계속 사용한다.
+// (Firebase Cloud Functions는 유료 Blaze 플랜이라 회피)
+// ============================================================
+
+// Firebase 초기화 완료 신호. 아래 module 스크립트가 resolve/reject 한다.
+// (classic script가 먼저 실행되고 module이 나중에 실행되므로 순서 안전)
+window.__firebaseReady = new Promise((resolve, reject) => {
+  window.__firebaseResolve = resolve;
+  window.__firebaseReject = reject;
+});
+
+/** Firebase 핸들 획득 (초기화 완료까지 대기) */
+function fb() {
+  return window.__firebaseReady;
+}
+
+/** 문제 문자열("7×8") → 문서 ID("7x8") */
+function qDocId(a, b) {
+  return `${Number(a)}x${Number(b)}`;
+}
+
+/** 프로필 문서의 lastModified 갱신값 */
+function nowIso() {
+  return new Date().toISOString();
+}
+
+const fstore = {
+  // ---------- 읽기 ----------
+
+  async getProfiles() {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(fs.collection(db, "profiles"));
+    const list = snap.docs.map((d) => {
+      const v = d.data() || {};
+      return {
+        id: d.id,
+        name: String(v.name || ""),
+        avatar: String(v.avatar || ""),
+        createdAt: String(v.createdAt || ""),
+        lastDate: String(v.lastDate || ""),
+        streak: Number(v.streak) || 0,
+        totalDays: Number(v.totalDays) || 0,
+        memo: String(v.memo || ""),
+      };
+    });
+    // 생성 순 (시트 시절과 동일한 표시 순서)
+    list.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    return list;
+  },
+
+  async getSessions(profileId) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(
+      fs.collection(db, "profiles", String(profileId), "sessions")
+    );
+    const list = snap.docs.map((d) => {
+      const v = d.data() || {};
+      return {
+        sessionId: d.id,
+        startedAt: String(v.startedAt || ""),
+        endedAt: String(v.endedAt || ""),
+        roundCount: Number(v.roundCount) || 0,
+        totalQ: Number(v.totalQ) || 0,
+        correctCnt: Number(v.correctCnt) || 0,
+        wrongCnt: Number(v.wrongCnt) || 0,
+        accuracy: Number(v.accuracy) || 0,
+        avgTime: Number(v.avgTime) || 0,
+        settings: v.settings || {},
+      };
+    });
+    // 최신순 (기존 백엔드와 동일)
+    list.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+    return list;
+  },
+
+  async getQuestionStats(profileId) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(
+      fs.collection(db, "profiles", String(profileId), "qstats")
+    );
+    return snap.docs.map((d) => {
+      const v = d.data() || {};
+      return {
+        question: String(v.question || ""),
+        a: Number(v.a) || 0,
+        b: Number(v.b) || 0,
+        attempts: Number(v.attempts) || 0,
+        correct: Number(v.correct) || 0,
+        timeout: Number(v.timeout) || 0,
+        avgTime: Number(v.avgTime) || 0,
+        recent3: String(v.recent3 || ""),
+        mastery: String(v.mastery || "seedling"),
+        lastDate: String(v.lastDate || ""),
+      };
+    });
+  },
+
+  async getLastModified(profileId) {
+    const { db, fs } = await fb();
+    const d = await fs.getDoc(fs.doc(db, "profiles", String(profileId)));
+    const v = d.exists() ? d.data() : null;
+    return { lastModified: v && v.lastModified ? String(v.lastModified) : null };
+  },
+
+  async getAllLastModified() {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(fs.collection(db, "profiles"));
+    const out = {};
+    snap.docs.forEach((d) => {
+      const v = d.data() || {};
+      out[d.id] = v.lastModified ? String(v.lastModified) : null;
+    });
+    return out;
+  },
+
+  async getAllProfileData(profileId) {
+    const id = String(profileId);
+    const [profiles, sessions, stats, lm] = await Promise.all([
+      this.getProfiles(),
+      this.getSessions(id),
+      this.getQuestionStats(id),
+      this.getLastModified(id),
+    ]);
+    const profile = profiles.find((p) => p.id === id);
+    if (!profile) throw new Error("프로필을 찾을 수 없습니다: " + id);
+    return { profile, sessions, stats, lastModified: lm.lastModified };
+  },
+
+  async getAllProfilesData() {
+    const profiles = await this.getProfiles();
+    const profileData = {};
+    await Promise.all(
+      profiles.map(async (p) => {
+        try {
+          const [sessions, stats, lm] = await Promise.all([
+            this.getSessions(p.id),
+            this.getQuestionStats(p.id),
+            this.getLastModified(p.id),
+          ]);
+          profileData[p.id] = { sessions, stats, lastModified: lm.lastModified };
+        } catch (err) {
+          console.warn("[fstore] 프로필 데이터 로드 실패:", p.id, err);
+          profileData[p.id] = { sessions: [], stats: [], lastModified: null };
+        }
+      })
+    );
+    return { profiles, profileData };
+  },
+
+  // ---------- 쓰기 ----------
+
+  async createProfile(payload) {
+    const { db, fs } = await fb();
+    const name = String((payload && payload.name) || "").trim();
+    if (!name) throw new Error("이름이 비어있습니다.");
+    if (name.length > 20) throw new Error("이름이 너무 깁니다 (최대 20자).");
+    const avatar = String((payload && payload.avatar) || "").trim() || "🦄";
+
+    const id = String(Date.now());
+    const now = nowIso();
+    const profile = {
+      name,
+      avatar,
+      createdAt: now,
+      lastDate: "",
+      streak: 0,
+      totalDays: 0,
+      memo: "",
+      lastModified: now,
+    };
+    await fs.setDoc(fs.doc(db, "profiles", id), profile);
+    return { id, ...profile };
+  },
+
+  async deleteProfile(payload) {
+    const { db, fs } = await fb();
+    const id = String((payload && payload.profileId) || "");
+    if (!id) throw new Error("profileId가 비어있습니다.");
+
+    // 하위 컬렉션 먼저 삭제 (Firestore는 자동 삭제 안 함)
+    for (const sub of ["sessions", "qstats"]) {
+      const snap = await fs.getDocs(fs.collection(db, "profiles", id, sub));
+      // 배치는 500건 제한 → 나눠서 처리
+      for (let i = 0; i < snap.docs.length; i += 400) {
+        const batch = fs.writeBatch(db);
+        snap.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+    await fs.deleteDoc(fs.doc(db, "profiles", id));
+    return { deleted: true, id };
+  },
+
+  /**
+   * 출석 갱신 (기존 백엔드 updateAttendance와 동일 규칙).
+   *   같은 날 재학습 → 변화 없음
+   *   어제 학습 후 오늘 → streak +1, totalDays +1
+   *   이틀 이상 공백 → streak = 1, totalDays +1
+   *   첫 학습 → streak = 1, totalDays = 1
+   *
+   * ※ Firestore는 문자열을 날짜로 자동 변환하지 않으므로
+   *   시트 시절의 날짜 형변환 버그(v3.3에서 수정)가 재발하지 않는다.
+   */
+  _calcAttendance(prev) {
+    const today = formatLocalDateClient(new Date());
+    const prevLastDate = String((prev && prev.lastDate) || "");
+    const prevStreak = Number((prev && prev.streak) || 0);
+    const prevTotalDays = Number((prev && prev.totalDays) || 0);
+
+    if (prevLastDate === today) {
+      return {
+        lastDate: prevLastDate,
+        streak: prevStreak,
+        totalDays: prevTotalDays,
+        changed: false,
+      };
+    }
+
+    let newStreak = 1;
+    if (prevLastDate) {
+      const d1 = new Date(prevLastDate + "T00:00:00");
+      const d2 = new Date(today + "T00:00:00");
+      const diff = Math.round((d2 - d1) / 86400000);
+      if (diff === 1) newStreak = prevStreak + 1;
+    }
+    return {
+      lastDate: today,
+      streak: newStreak,
+      totalDays: prevTotalDays + 1,
+      changed: true,
+    };
+  },
+
+  async saveSession(payload) {
+    const { db, fs } = await fb();
+    const id = String((payload && payload.profileId) || "");
+    if (!id) throw new Error("profileId가 비어있습니다.");
+
+    const sessionId = String(Date.now());
+    const now = nowIso();
+
+    await fs.setDoc(fs.doc(db, "profiles", id, "sessions", sessionId), {
+      startedAt: String(payload.startedAt || now),
+      endedAt: "",
+      roundCount: 1,
+      totalQ: Number(payload.totalQ) || 0,
+      correctCnt: Number(payload.correctCnt) || 0,
+      wrongCnt: Number(payload.wrongCnt) || 0,
+      accuracy: Number(payload.accuracy) || 0,
+      avgTime: Number(payload.avgTime) || 0,
+      settings: payload.settings || {},
+    });
+
+    // 출석 갱신
+    let attendance = null;
+    try {
+      const pRef = fs.doc(db, "profiles", id);
+      const pSnap = await fs.getDoc(pRef);
+      attendance = this._calcAttendance(pSnap.exists() ? pSnap.data() : null);
+      const patch = { lastModified: now };
+      if (attendance.changed) {
+        patch.lastDate = attendance.lastDate;
+        patch.streak = attendance.streak;
+        patch.totalDays = attendance.totalDays;
+      }
+      await fs.updateDoc(pRef, patch);
+    } catch (err) {
+      console.warn("[fstore] 출석 갱신 실패 (무시):", err);
+    }
+
+    return { sessionId, attendance };
+  },
+
+  async updateSessionEnd(payload) {
+    const { db, fs } = await fb();
+    const id = String((payload && payload.profileId) || "");
+    const sessionId = String((payload && payload.sessionId) || "");
+    if (!id || !sessionId) throw new Error("profileId/sessionId가 비어있습니다.");
+
+    await fs.updateDoc(fs.doc(db, "profiles", id, "sessions", sessionId), {
+      endedAt: String(payload.endedAt || nowIso()),
+      roundCount: Number(payload.roundCount) || 1,
+    });
+    await fs.updateDoc(fs.doc(db, "profiles", id), { lastModified: nowIso() });
+    return { updated: true, sessionId };
+  },
+
+  /**
+   * 문제별 누적 통계 일괄 갱신.
+   * 기존 백엔드 updateQuestionStatsBatch와 동일한 누적 규칙을 사용한다.
+   * (같은 문제가 여러 번 들어올 수 있음 — 순서대로 누적)
+   */
+  async updateQuestionStatsBatch(payload) {
+    const { db, fs } = await fb();
+    const id = String((payload && payload.profileId) || "");
+    const items = Array.isArray(payload && payload.items) ? payload.items : [];
+    if (!id) throw new Error("profileId가 비어있습니다.");
+    if (items.length === 0) return { updated: 0, masteryChanges: [] };
+
+    const today = formatLocalDateClient(new Date());
+
+    // 1) 관련 문제들의 기존 통계만 읽기
+    const ids = [...new Set(items.map((it) => qDocId(it.a, it.b)))];
+    const existing = {};
+    await Promise.all(
+      ids.map(async (docId) => {
+        const s = await fs.getDoc(fs.doc(db, "profiles", id, "qstats", docId));
+        if (s.exists()) existing[docId] = s.data();
+      })
+    );
+
+    const initialMastery = {};
+    Object.keys(existing).forEach((k) => {
+      initialMastery[k] = String(existing[k].mastery || "seedling");
+    });
+
+    // 2) 메모리에서 누적
+    const work = {};
+    items.forEach((it) => {
+      const docId = qDocId(it.a, it.b);
+      const base =
+        work[docId] ||
+        existing[docId] || {
+          question: String(it.question || ""),
+          a: Number(it.a) || 0,
+          b: Number(it.b) || 0,
+          attempts: 0,
+          correct: 0,
+          timeout: 0,
+          avgTime: 0,
+          recent3: "",
+          mastery: "seedling",
+          lastDate: today,
+        };
+
+      const prevAttempts = Number(base.attempts) || 0;
+      const prevCorrect = Number(base.correct) || 0;
+      const prevAvgTime = Number(base.avgTime) || 0;
+
+      const isCorrect = !!it.isCorrect;
+      const responseTime = Number(it.responseTime) || 0;
+
+      const newAttempts = prevAttempts + 1;
+      const newCorrect = prevCorrect + (isCorrect ? 1 : 0);
+      const newTimeout = (Number(base.timeout) || 0) + (it.isTimeout ? 1 : 0);
+
+      // 평균 응답시간: 정답인 경우만 가중평균
+      let newAvgTime = prevAvgTime;
+      if (isCorrect && responseTime > 0) {
+        const sum = prevAvgTime * prevCorrect + responseTime;
+        newAvgTime = Math.round((sum / newCorrect) * 100) / 100;
+      }
+
+      const newRecent3 = localUpdateRecent3(String(base.recent3 || ""), isCorrect);
+      const next = {
+        question: String(it.question || base.question || ""),
+        a: Number(it.a) || base.a || 0,
+        b: Number(it.b) || base.b || 0,
+        attempts: newAttempts,
+        correct: newCorrect,
+        timeout: newTimeout,
+        avgTime: newAvgTime,
+        recent3: newRecent3,
+        lastDate: today,
+      };
+      next.mastery = localCalcMastery(next);
+      work[docId] = next;
+    });
+
+    // 3) 일괄 쓰기 (배치 500건 제한 고려)
+    const keys = Object.keys(work);
+    for (let i = 0; i < keys.length; i += 400) {
+      const batch = fs.writeBatch(db);
+      keys.slice(i, i + 400).forEach((k) => {
+        batch.set(fs.doc(db, "profiles", id, "qstats", k), work[k]);
+      });
+      await batch.commit();
+    }
+    await fs.updateDoc(fs.doc(db, "profiles", id), { lastModified: nowIso() });
+
+    // 4) 마스터리 변경 목록 (클라이언트가 이미 계산하지만 형식 유지)
+    const masteryChanges = [];
+    keys.forEach((k) => {
+      const before = initialMastery[k] || "seedling";
+      const after = work[k].mastery;
+      if (before !== after) {
+        masteryChanges.push({ question: work[k].question, prev: before, next: after });
+      }
+    });
+
+    return { updated: items.length, masteryChanges };
   },
 };
 
@@ -5440,6 +5878,53 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
       .catch(err => console.warn('[PWA] 서비스워커 등록 실패 (무시):', err));
   });
 }
+</script>
+
+<!-- ============================================================
+     [v7] Firebase 초기화 (module — 위 classic script 다음에 실행됨)
+     초기화가 끝나면 window.__firebaseResolve 로 데이터 계층에 핸들을 넘긴다.
+     ============================================================ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+import {
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch
+} from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+(async () => {
+  try {
+    if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
+      throw new Error('firebase-config.js 가 없거나 apiKey가 비어 있어요.');
+    }
+
+    const app = initializeApp(window.FIREBASE_CONFIG);
+
+    // 오프라인 지속성 = 두 번째 실행부터 네트워크 없이 즉시 표시
+    let db;
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      });
+    } catch (persistErr) {
+      console.warn('[Firebase] 영속 캐시 사용 불가, 메모리 캐시로 진행:', persistErr);
+      db = initializeFirestore(app, {});
+    }
+
+    // 익명 로그인 (아이가 로그인할 필요 없음). 보안 규칙이 이 인증을 요구함.
+    const auth = getAuth(app);
+    await signInAnonymously(auth);
+
+    window.__firebaseResolve({
+      db, auth,
+      fs: { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch }
+    });
+    console.log('[Firebase] 준비 완료');
+  } catch (err) {
+    console.error('[Firebase] 초기화 실패:', err);
+    window.__firebaseReject(err);
+  }
+})();
 </script>
 </body>
 </html>

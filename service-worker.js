@@ -13,13 +13,14 @@
  * 배포할 때마다 CACHE_VERSION 을 올린다. (옛 캐시 자동 정리)
  */
 
-const CACHE_VERSION = 'v6-1';
+const CACHE_VERSION = 'v7-0';
 const CACHE_NAME = `gugudan-${CACHE_VERSION}`;
 
 // 설치 시 미리 받아둘 파일 (상대 경로 — GitHub Pages 하위 경로에서도 동작)
 const PRECACHE_URLS = [
   './',
   './index.html',
+  './firebase-config.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
