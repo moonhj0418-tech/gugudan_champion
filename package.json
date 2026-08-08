@@ -1,0 +1,15 @@
+{
+  "name": "gugudan-champion",
+  "version": "7.0.0",
+  "private": true,
+  "description": "구구단 챔피언 - 개인용 안드로이드 앱 빌드 설정 (Capacitor)",
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/splash-screen": "^6.0.3"
+  }
+}

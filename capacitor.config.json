@@ -1,0 +1,19 @@
+{
+  "appId": "com.moonhj.gugudan",
+  "appName": "구구단 챔피언",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#FFF4E0",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
+  }
+}

@@ -1,0 +1,85 @@
+# 구구단 챔피언 - 안드로이드 APK 빌드 (Capacitor)
+#
+# 로컬에 Node/JDK/Android SDK를 설치하지 않고 GitHub 클라우드에서 APK를 만든다.
+# 실행: 저장소 → Actions → "Build Android APK" → Run workflow
+# 결과: 실행 페이지 하단 Artifacts 에서 gugudan-champion-apk 다운로드
+#
+# 웹 자산(index.html 등)은 저장소 루트에 있고, 빌드 시점에 www/ 로 모아
+# APK 안에 통째로 넣는다. → 브라우저 앱 없이도 실행되고 오프라인에서도 동작.
+
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "firebase-config.js"
+      - "manifest.json"
+      - "assets/**"
+      - "capacitor.config.json"
+      - "package.json"
+      - ".github/workflows/build-apk.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: JDK 설치
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK 라이선스 동의
+        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+      - name: 의존성 설치
+        run: npm install
+
+      - name: 웹 자산을 www/ 로 모으기
+        run: |
+          rm -rf www && mkdir -p www
+          cp index.html firebase-config.js manifest.json www/
+          cp icon-192.png icon-512.png icon-512-maskable.png www/
+          cp apple-touch-icon.png favicon-32.png www/
+          echo "--- www 내용 ---"
+          ls -1 www
+
+      - name: 안드로이드 플랫폼 생성
+        run: npx cap add android
+
+      - name: 앱 아이콘/스플래시 생성
+        run: npx @capacitor/assets generate --android
+
+      - name: 웹 자산 동기화
+        run: npx cap sync android
+
+      - name: APK 빌드
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: APK 이름 정리
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/gugudan-champion.apk
+          ls -lh out
+
+      - name: APK 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: gugudan-champion-apk
+          path: out/gugudan-champion.apk
+          retention-days: 30

@@ -5871,7 +5871,11 @@ bootstrap();
 // [v6.1] 서비스워커 등록 (PWA)
 // 실패해도 앱 동작에는 영향 없음 (캐시 가속만 빠짐).
 // file:// 로 직접 열면 등록되지 않음 — http(s) 환경에서만 동작.
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+// [v7.1] Capacitor(APK) 안에서는 등록하지 않음 — 자산이 이미 앱에 포함돼 있어
+//        서비스워커 캐시는 이득 없이 "업데이트가 한 박자 늦는" 문제만 만든다.
+const __isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform
+  ? window.Capacitor.isNativePlatform() : window.Capacitor);
+if (!__isNativeApp && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('service-worker.js')
       .then(reg => console.log('[PWA] 서비스워커 등록됨:', reg.scope))
