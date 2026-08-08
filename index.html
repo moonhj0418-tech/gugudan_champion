@@ -6,6 +6,18 @@
 <title>구구단 챔피언 🏆</title>
 <!-- v5.1: 모바일 뒤로 가기 → 통합 메뉴 모달 + 스크롤 힌트 메시지 개선 -->
 <!-- v6: 문제 방식 변경 — 빈칸(□) 인수 맞히기. 빈칸 위치(앞/뒤/혼합) × 문제 형식(가로곱셈/거꾸로곱셈/가로나눗셈/세로나눗셈, 고급·다중선택). 개수·중복 옵션 제거 -->
+<!-- v6.1: PWA — 홈 화면 설치 + 서비스워커 캐시로 초기 로딩 가속 -->
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFF4E0">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="구구단">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
@@ -5417,6 +5429,17 @@ updateInfo();
 
 // [v2] 부트스트랩 — 프로필 화면부터 시작
 bootstrap();
+
+// [v6.1] 서비스워커 등록 (PWA)
+// 실패해도 앱 동작에는 영향 없음 (캐시 가속만 빠짐).
+// file:// 로 직접 열면 등록되지 않음 — http(s) 환경에서만 동작.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('[PWA] 서비스워커 등록됨:', reg.scope))
+      .catch(err => console.warn('[PWA] 서비스워커 등록 실패 (무시):', err));
+  });
+}
 </script>
 </body>
 </html>
