@@ -2780,6 +2780,34 @@
         </div>
       </div>
 
+      <!-- [v8] 나눗셈 통계 (나눗셈 기록이 있을 때만 표시) -->
+      <div id="divStatsArea" style="display:none;">
+        <div class="stats-section">
+          <div class="stats-section-title">➗ 나눗셈 — 나누는 수별 정답률</div>
+          <div class="bar-chart" id="divAccuracyChart"></div>
+        </div>
+
+        <div class="stats-section">
+          <div class="stats-section-title">➗ 나눗셈 마스터리</div>
+          <div class="stats-section-sub">가로: 몫 1~9 / 세로: 나누는 수 2~9 (나머지는 합쳐서 집계)</div>
+          <div class="mastery-grid-wrap">
+            <div class="mastery-grid" id="divMasteryGrid"></div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <div class="stats-section-title">🔍 어느 자리를 어려워할까?</div>
+          <div class="stats-section-sub">빈칸이 어디에 나왔을 때 잘 맞히는지 비교해요</div>
+          <div class="bar-chart" id="divPosChart"></div>
+        </div>
+
+        <div class="stats-section">
+          <div class="stats-section-title">⚡ 나눗셈 약점 TOP 5</div>
+          <div class="stats-section-sub">가장 많이 틀린 (나누는 수 × 몫) 조합이에요</div>
+          <div class="weak-list" id="divWeakList"></div>
+        </div>
+      </div>
+
       <!-- 성장 그래프 -->
       <div class="stats-section">
         <div class="stats-section-title">📈 성장 그래프</div>
@@ -2988,6 +3016,8 @@ const state = {
   profiles: [],                // 전체 프로필 목록
   profileSessions: [],         // 캐시된 세션 (3단계에서 활용)
   profileStats: [],            // 캐시된 문제 통계 (3단계에서 활용)
+  profileDivStats: [],         // [v8] 나눗셈 칸별 통계 (나누는수×몫)
+  profileDivPos: {},           // [v8] 나눗셈 빈칸 자리별 통계
   isOnline: navigator.onLine,
 
   // [v3 추가] 시험 결과 수집
@@ -3637,6 +3667,17 @@ function showFinalScreen() {
 
   // [v4.1] 클라이언트 사이드 즉시 계산
   // 백엔드 응답을 기다리지 않고 sessionAttempts로 직접 새 stats / 마스터리 변경 / summary 계산
+  // [v8] 나눗셈: 클라이언트에서 즉시 누적해 통계 화면에 바로 반영
+  if (state.currentProfile && state.practiceMode === 'div' && state.divAttempts.length > 0) {
+    const dres = applyDivAttemptsLocally(state.profileDivStats || [], state.profileDivPos || {}, state.divAttempts);
+    state.profileDivStats = dres.cells;
+    state.profileDivPos = dres.pos;
+    const cachedD = cache.get(LS_KEY.PROFILE_DATA(state.currentProfile.id)) || { sessions: [], stats: [] };
+    cachedD.divStats = dres.cells;
+    cachedD.divPos = dres.pos;
+    cache.set(LS_KEY.PROFILE_DATA(state.currentProfile.id), cachedD);
+  }
+
   if (state.currentProfile && state.practiceMode !== 'div' && state.sessionAttempts.length > 0) {
     const result = applyAttemptsLocally(state.profileStats || [], state.sessionAttempts);
     // state 갱신 — 화면 어디에서든 즉시 사용 가능
@@ -3722,13 +3763,14 @@ async function saveSessionResultsQuiet() {
   // [v8] 나눗셈이면 divAttempts 를, 곱셈이면 sessionAttempts 를 기준으로 집계한다.
   const items = isDiv ? state.divAttempts.slice() : state.sessionAttempts.slice();
 
-  // 1) 곱셈 통계 배치 저장 (나눗셈은 통계를 분리하므로 건너뜀 — 2단계에서 divstats 저장)
-  if (!isDiv && items.length > 0) {
+  // 1) 통계 배치 저장 — 연습 종류에 따라 다른 컬렉션에 기록
+  if (items.length > 0) {
     try {
-      await api.post('updateQuestionStatsBatch', {
-        profileId: profileId,
-        items: items,
-      });
+      if (isDiv) {
+        await api.post('updateDivStatsBatch', { profileId: profileId, items: items });
+      } else {
+        await api.post('updateQuestionStatsBatch', { profileId: profileId, items: items });
+      }
     } catch (err) {
       console.warn('[saveSessionResultsQuiet] batch 실패 (무시):', err.message || err);
     }
@@ -4030,9 +4072,11 @@ function renderStatsAnalysis() {
   const area = document.getElementById('statsAnalysisArea');
   const sessions = state.profileSessions || [];
   const stats = state.profileStats || [];
+  const divStats = state.profileDivStats || [];
+  const divPos = state.profileDivPos || {};
 
   // 시험 한 번도 안 봤으면 빈 상태만 표시
-  if (sessions.length === 0 && stats.length === 0) {
+  if (sessions.length === 0 && stats.length === 0 && divStats.length === 0) {
     if (empty) empty.style.display = 'block';
     if (area) area.style.display = 'none';
     return;
@@ -4060,7 +4104,10 @@ function renderStatsAnalysis() {
   // 5. 헷갈리는 문제
   renderConfusingList(stats);
 
-  // 6. 성장 그래프
+  // 6. [v8] 나눗셈 통계
+  renderDivStats(divStats, divPos);
+
+  // 7. 성장 그래프
   renderGrowthChart(sessions);
 }
 
@@ -4270,6 +4317,137 @@ function renderConfusingList(stats) {
     row.querySelector('.question').textContent = s.question;
     container.appendChild(row);
   });
+}
+
+/**
+ * [v8] 나눗셈 통계 렌더 — 나누는 수별 정답률 / 마스터리 그리드 / 빈칸 자리별 / 약점 TOP5
+ * 나눗셈 기록이 없으면 영역 전체를 숨긴다.
+ */
+function renderDivStats(divStats, divPos) {
+  const area = document.getElementById('divStatsArea');
+  if (!area) return;
+  const cells = divStats || [];
+  const totalAttempts = cells.reduce((a, c) => a + (Number(c.attempts) || 0), 0);
+  if (totalAttempts === 0) { area.style.display = 'none'; return; }
+  area.style.display = 'block';
+
+  // --- 1. 나누는 수별 정답률 ---
+  const chart = document.getElementById('divAccuracyChart');
+  if (chart) {
+    chart.innerHTML = '';
+    const map = {};
+    for (let d = 2; d <= 9; d++) map[d] = { attempts: 0, correct: 0 };
+    cells.forEach(c => {
+      const d = Number(c.divisor) || 0;
+      if (map[d]) { map[d].attempts += Number(c.attempts) || 0; map[d].correct += Number(c.correct) || 0; }
+    });
+    for (let d = 2; d <= 9; d++) {
+      const m = map[d];
+      const has = m.attempts > 0;
+      const acc = has ? Math.round((m.correct / m.attempts) * 100) : 0;
+      const cls = acc >= 90 ? 'bar-high' : (acc >= 70 ? 'bar-mid' : 'bar-low');
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-label">÷${d}</div>
+        <div class="bar-track">${has ? `<div class="bar-fill ${cls}" style="width:${acc}%"></div>` : ''}</div>
+        <div class="bar-value ${has ? '' : 'empty'}">${has ? acc + '%' : '—'}</div>
+      `;
+      chart.appendChild(row);
+    }
+  }
+
+  // --- 2. 마스터리 그리드 (세로: 나누는 수 2~9 / 가로: 몫 1~9) ---
+  const grid = document.getElementById('divMasteryGrid');
+  if (grid) {
+    grid.innerHTML = '';
+    const cmap = {};
+    cells.forEach(c => { cmap[`${c.divisor}_${c.quotient}`] = c; });
+
+    const corner = document.createElement('div');
+    corner.className = 'axis-cell';
+    corner.textContent = '÷';
+    grid.appendChild(corner);
+    for (let x = 1; x <= 9; x++) {
+      const c = document.createElement('div');
+      c.className = 'axis-cell';
+      c.textContent = x;
+      grid.appendChild(c);
+    }
+    for (let d = 2; d <= 9; d++) {
+      const yl = document.createElement('div');
+      yl.className = 'axis-cell';
+      yl.textContent = d;
+      grid.appendChild(yl);
+      for (let q = 1; q <= 9; q++) {
+        const st = cmap[`${d}_${q}`];
+        const cell = document.createElement('div');
+        cell.tabIndex = 0;
+        let icon = '·', cls = 'empty';
+        let tip = `${d}로 나눠서 몫 ${q}: 아직 안 풀어봤어`;
+        if (st) {
+          const m = st.mastery || 'seedling';
+          if (m === 'master')       { cls = 'master';   icon = '🌳'; }
+          else if (m === 'growing') { cls = 'growing';  icon = '🌿'; }
+          else                      { cls = 'seedling'; icon = '🌱'; }
+          const acc = st.attempts > 0 ? Math.round((st.correct / st.attempts) * 100) : 0;
+          tip = `÷${d} 몫${q} · 시도 ${st.attempts}회 · 정답률 ${acc}% · 평균 ${st.avgTime || 0}초`;
+        }
+        cell.className = `grid-cell ${cls}`;
+        cell.textContent = icon;
+        cell.dataset.tooltip = tip;
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  // --- 3. 빈칸 자리별 정답률 ---
+  const posChart = document.getElementById('divPosChart');
+  if (posChart) {
+    posChart.innerHTML = '';
+    const label = { dividend: '나뉘는수', divisor: '나누는수', quotient: '몫', remainder: '나머지' };
+    ['dividend', 'divisor', 'quotient', 'remainder'].forEach(k => {
+      const v = (divPos || {})[k] || { attempts: 0, correct: 0 };
+      const has = v.attempts > 0;
+      const acc = has ? Math.round((v.correct / v.attempts) * 100) : 0;
+      const cls = acc >= 90 ? 'bar-high' : (acc >= 70 ? 'bar-mid' : 'bar-low');
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-label">${label[k]}</div>
+        <div class="bar-track">${has ? `<div class="bar-fill ${cls}" style="width:${acc}%"></div>` : ''}</div>
+        <div class="bar-value ${has ? '' : 'empty'}">${has ? acc + '%' : '—'}</div>
+      `;
+      posChart.appendChild(row);
+    });
+  }
+
+  // --- 4. 약점 TOP 5 ---
+  const weak = document.getElementById('divWeakList');
+  if (weak) {
+    weak.innerHTML = '';
+    const cand = cells
+      .filter(c => (Number(c.attempts) || 0) >= 2 && (Number(c.attempts) - Number(c.correct)) > 0)
+      .map(c => ({ ...c, wrong: Number(c.attempts) - Number(c.correct) }))
+      .sort((a, b) => b.wrong - a.wrong || (a.correct / a.attempts) - (b.correct / b.attempts))
+      .slice(0, 5);
+    if (cand.length === 0) {
+      weak.innerHTML = '<div class="stats-section-sub">아직 약점이 없어요! 잘하고 있어요 👏</div>';
+    } else {
+      cand.forEach((c, i) => {
+        const acc = Math.round((c.correct / c.attempts) * 100);
+        const row = document.createElement('div');
+        row.className = 'weak-item';
+        row.innerHTML = `
+          <div class="rank">${i + 1}</div>
+          <div class="question"></div>
+          <div class="info">${c.wrong}번 틀림 · 정답률 ${acc}%</div>
+        `;
+        row.querySelector('.question').textContent = `÷${c.divisor} 몫${c.quotient}`;
+        weak.appendChild(row);
+      });
+    }
+  }
 }
 
 /**
@@ -4500,6 +4678,60 @@ function applyAttemptsLocally(prevStats, attempts) {
 /**
  * 로컬 타임존 기준 YYYY-MM-DD 변환 (클라이언트용).
  */
+/**
+ * [v8] 나눗셈 시도를 클라이언트에서 즉시 누적한다.
+ * (백엔드 응답을 기다리지 않고 통계 화면에 바로 반영하기 위함 — 곱셈의 applyAttemptsLocally와 같은 역할)
+ */
+function applyDivAttemptsLocally(prevCells, prevPos, attempts) {
+  const today = formatLocalDateClient(new Date());
+  const cells = {};
+  (prevCells || []).forEach(c => { cells[`d${c.divisor}q${c.quotient}`] = { ...c }; });
+  const pos = JSON.parse(JSON.stringify(prevPos || {}));
+
+  (attempts || []).forEach(it => {
+    const cid = `d${it.divisor}q${it.quotient}`;
+    const base = cells[cid] || {
+      divisor: it.divisor, quotient: it.quotient,
+      attempts: 0, correct: 0, timeout: 0, avgTime: 0, recent3: '', mastery: 'seedling', lastDate: today,
+    };
+    const isCorrect = !!it.isCorrect;
+    const rt = Number(it.responseTime) || 0;
+    const prevCor = Number(base.correct) || 0;
+    const prevAvg = Number(base.avgTime) || 0;
+    const nAtt = (Number(base.attempts) || 0) + 1;
+    const nCor = prevCor + (isCorrect ? 1 : 0);
+    let nAvg = prevAvg;
+    if (isCorrect && rt > 0) nAvg = Math.round(((prevAvg * prevCor + rt) / nCor) * 100) / 100;
+
+    const next = {
+      divisor: it.divisor, quotient: it.quotient,
+      attempts: nAtt, correct: nCor,
+      timeout: (Number(base.timeout) || 0) + (it.isTimeout ? 1 : 0),
+      avgTime: nAvg,
+      recent3: localUpdateRecent3(String(base.recent3 || ''), isCorrect),
+      lastDate: today,
+    };
+    next.mastery = localCalcMastery(next);
+    cells[cid] = next;
+
+    const pid = String(it.blankPos || 'unknown');
+    const pb = pos[pid] || { attempts: 0, correct: 0, timeout: 0, avgTime: 0 };
+    const pPrevCor = Number(pb.correct) || 0;
+    const pPrevAvg = Number(pb.avgTime) || 0;
+    const pAtt = (Number(pb.attempts) || 0) + 1;
+    const pCor = pPrevCor + (isCorrect ? 1 : 0);
+    let pAvg = pPrevAvg;
+    if (isCorrect && rt > 0) pAvg = Math.round(((pPrevAvg * pPrevCor + rt) / pCor) * 100) / 100;
+    pos[pid] = {
+      attempts: pAtt, correct: pCor,
+      timeout: (Number(pb.timeout) || 0) + (it.isTimeout ? 1 : 0),
+      avgTime: pAvg,
+    };
+  });
+
+  return { cells: Object.values(cells), pos: pos };
+}
+
 function formatLocalDateClient(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -4626,6 +4858,8 @@ const api = {
       case "getAllProfileData":   return fstore.getAllProfileData(params.profileId);
       case "getAllProfilesData":  return fstore.getAllProfilesData();
       case "getAllLastModified":  return fstore.getAllLastModified();
+      case "getDivStats":         return fstore.getDivStats(params.profileId);
+      case "getDivPositions":     return fstore.getDivPositions(params.profileId);
     }
     return this._appsScriptGet(action, params);
   },
@@ -4664,6 +4898,7 @@ const api = {
       case "saveSession":              return fstore.saveSession(payload);
       case "updateSessionEnd":         return fstore.updateSessionEnd(payload);
       case "updateQuestionStatsBatch": return fstore.updateQuestionStatsBatch(payload);
+      case "updateDivStatsBatch":      return fstore.updateDivStatsBatch(payload);
     }
     return this._appsScriptPost(action, payload);
   },
@@ -4812,15 +5047,17 @@ const fstore = {
 
   async getAllProfileData(profileId) {
     const id = String(profileId);
-    const [profiles, sessions, stats, lm] = await Promise.all([
+    const [profiles, sessions, stats, divStats, divPos, lm] = await Promise.all([
       this.getProfiles(),
       this.getSessions(id),
       this.getQuestionStats(id),
+      this.getDivStats(id),
+      this.getDivPositions(id),
       this.getLastModified(id),
     ]);
     const profile = profiles.find((p) => p.id === id);
     if (!profile) throw new Error("프로필을 찾을 수 없습니다: " + id);
-    return { profile, sessions, stats, lastModified: lm.lastModified };
+    return { profile, sessions, stats, divStats, divPos, lastModified: lm.lastModified };
   },
 
   async getAllProfilesData() {
@@ -4829,15 +5066,17 @@ const fstore = {
     await Promise.all(
       profiles.map(async (p) => {
         try {
-          const [sessions, stats, lm] = await Promise.all([
+          const [sessions, stats, divStats, divPos, lm] = await Promise.all([
             this.getSessions(p.id),
             this.getQuestionStats(p.id),
+            this.getDivStats(p.id),
+            this.getDivPositions(p.id),
             this.getLastModified(p.id),
           ]);
-          profileData[p.id] = { sessions, stats, lastModified: lm.lastModified };
+          profileData[p.id] = { sessions, stats, divStats, divPos, lastModified: lm.lastModified };
         } catch (err) {
           console.warn("[fstore] 프로필 데이터 로드 실패:", p.id, err);
-          profileData[p.id] = { sessions: [], stats: [], lastModified: null };
+          profileData[p.id] = { sessions: [], stats: [], divStats: [], divPos: {}, lastModified: null };
         }
       })
     );
@@ -4875,7 +5114,7 @@ const fstore = {
     if (!id) throw new Error("profileId가 비어있습니다.");
 
     // 하위 컬렉션 먼저 삭제 (Firestore는 자동 삭제 안 함)
-    for (const sub of ["sessions", "qstats"]) {
+    for (const sub of ["sessions", "qstats", "divstats", "divpos"]) {
       const snap = await fs.getDocs(fs.collection(db, "profiles", id, sub));
       // 배치는 500건 제한 → 나눠서 처리
       for (let i = 0; i < snap.docs.length; i += 400) {
@@ -5086,6 +5325,144 @@ const fstore = {
     });
 
     return { updated: items.length, masteryChanges };
+  },
+
+  // ---------- [v8] 나눗셈 통계 (곱셈과 분리) ----------
+  //
+  // 나눗셈 문제 조합은 396가지라 문제별 마스터리는 의미가 없다.
+  // 그래서 두 축으로 집계한다.
+  //   divstats/{d5q3}      (나누는 수 × 몫) 72칸 — 그리드/마스터리용
+  //   divpos/{quotient}    빈칸 자리 4종      — "어느 자리를 어려워하는가"
+
+  async getDivStats(profileId) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(
+      fs.collection(db, "profiles", String(profileId), "divstats")
+    );
+    return snap.docs.map((d) => {
+      const v = d.data() || {};
+      return {
+        divisor: Number(v.divisor) || 0,
+        quotient: Number(v.quotient) || 0,
+        attempts: Number(v.attempts) || 0,
+        correct: Number(v.correct) || 0,
+        timeout: Number(v.timeout) || 0,
+        avgTime: Number(v.avgTime) || 0,
+        recent3: String(v.recent3 || ""),
+        mastery: String(v.mastery || "seedling"),
+        lastDate: String(v.lastDate || ""),
+      };
+    });
+  },
+
+  async getDivPositions(profileId) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(
+      fs.collection(db, "profiles", String(profileId), "divpos")
+    );
+    const out = {};
+    snap.docs.forEach((d) => {
+      const v = d.data() || {};
+      out[d.id] = {
+        attempts: Number(v.attempts) || 0,
+        correct: Number(v.correct) || 0,
+        timeout: Number(v.timeout) || 0,
+        avgTime: Number(v.avgTime) || 0,
+      };
+    });
+    return out;
+  },
+
+  /**
+   * 나눗셈 시도 일괄 반영.
+   * items: [{ divisor, quotient, remainder, dividend, blankPos, isCorrect, responseTime, isTimeout }]
+   */
+  async updateDivStatsBatch(payload) {
+    const { db, fs } = await fb();
+    const id = String((payload && payload.profileId) || "");
+    const items = Array.isArray(payload && payload.items) ? payload.items : [];
+    if (!id) throw new Error("profileId가 비어있습니다.");
+    if (items.length === 0) return { updated: 0 };
+
+    const today = formatLocalDateClient(new Date());
+
+    // 1) 관련 칸(나누는수×몫)과 자리(4종)의 기존 값만 읽기
+    const cellIds = [...new Set(items.map((it) => `d${it.divisor}q${it.quotient}`))];
+    const posIds = [...new Set(items.map((it) => String(it.blankPos || "unknown")))];
+
+    const cells = {};
+    const poss = {};
+    await Promise.all([
+      ...cellIds.map(async (cid) => {
+        const d = await fs.getDoc(fs.doc(db, "profiles", id, "divstats", cid));
+        if (d.exists()) cells[cid] = d.data();
+      }),
+      ...posIds.map(async (pid) => {
+        const d = await fs.getDoc(fs.doc(db, "profiles", id, "divpos", pid));
+        if (d.exists()) poss[pid] = d.data();
+      }),
+    ]);
+
+    // 2) 메모리에서 누적
+    const workCells = {};
+    const workPos = {};
+    items.forEach((it) => {
+      const cid = `d${it.divisor}q${it.quotient}`;
+      const base = workCells[cid] || cells[cid] || {
+        divisor: Number(it.divisor) || 0,
+        quotient: Number(it.quotient) || 0,
+        attempts: 0, correct: 0, timeout: 0, avgTime: 0, recent3: "",
+        mastery: "seedling", lastDate: today,
+      };
+      const isCorrect = !!it.isCorrect;
+      const rt = Number(it.responseTime) || 0;
+      const prevCorrect = Number(base.correct) || 0;
+      const prevAvg = Number(base.avgTime) || 0;
+
+      const nAtt = (Number(base.attempts) || 0) + 1;
+      const nCor = prevCorrect + (isCorrect ? 1 : 0);
+      const nTo = (Number(base.timeout) || 0) + (it.isTimeout ? 1 : 0);
+      let nAvg = prevAvg;
+      if (isCorrect && rt > 0) nAvg = Math.round(((prevAvg * prevCorrect + rt) / nCor) * 100) / 100;
+
+      const next = {
+        divisor: Number(it.divisor) || base.divisor,
+        quotient: Number(it.quotient) || base.quotient,
+        attempts: nAtt, correct: nCor, timeout: nTo, avgTime: nAvg,
+        recent3: localUpdateRecent3(String(base.recent3 || ""), isCorrect),
+        lastDate: today,
+      };
+      next.mastery = localCalcMastery(next);
+      workCells[cid] = next;
+
+      // 빈칸 자리별 집계
+      const pid = String(it.blankPos || "unknown");
+      const pb = workPos[pid] || poss[pid] || { attempts: 0, correct: 0, timeout: 0, avgTime: 0 };
+      const pPrevCor = Number(pb.correct) || 0;
+      const pPrevAvg = Number(pb.avgTime) || 0;
+      const pAtt = (Number(pb.attempts) || 0) + 1;
+      const pCor = pPrevCor + (isCorrect ? 1 : 0);
+      let pAvg = pPrevAvg;
+      if (isCorrect && rt > 0) pAvg = Math.round(((pPrevAvg * pPrevCor + rt) / pCor) * 100) / 100;
+      workPos[pid] = {
+        attempts: pAtt, correct: pCor,
+        timeout: (Number(pb.timeout) || 0) + (it.isTimeout ? 1 : 0),
+        avgTime: pAvg,
+      };
+    });
+
+    // 3) 일괄 쓰기
+    const batch = fs.writeBatch(db);
+    Object.keys(workCells).forEach((cid) => {
+      batch.set(fs.doc(db, "profiles", id, "divstats", cid), workCells[cid]);
+    });
+    Object.keys(workPos).forEach((pid) => {
+      batch.set(fs.doc(db, "profiles", id, "divpos", pid), workPos[pid]);
+    });
+    await batch.commit();
+    await fs.updateDoc(fs.doc(db, "profiles", id), { lastModified: nowIso() });
+
+    return { updated: items.length, cells: Object.keys(workCells).length };
   },
 };
 
@@ -5748,10 +6125,12 @@ async function syncProfileData(profileId) {
 
     if (!serverLastMod) {
       // 서버에 데이터 없음 (신규 프로필)
-      cache.set(LS_KEY.PROFILE_DATA(profileId), { sessions: [], stats: [] });
+      cache.set(LS_KEY.PROFILE_DATA(profileId), { sessions: [], stats: [], divStats: [], divPos: {} });
       cache.set(LS_KEY.LAST_MODIFIED(profileId), null);
       state.profileSessions = [];
       state.profileStats = [];
+      state.profileDivStats = [];
+      state.profileDivPos = {};
       return;
     }
 
@@ -5760,6 +6139,8 @@ async function syncProfileData(profileId) {
       const cached = cache.get(LS_KEY.PROFILE_DATA(profileId)) || { sessions: [], stats: [] };
       state.profileSessions = cached.sessions || [];
       state.profileStats = cached.stats || [];
+      state.profileDivStats = cached.divStats || [];
+      state.profileDivPos = cached.divPos || {};
       return;
     }
 
@@ -5767,10 +6148,14 @@ async function syncProfileData(profileId) {
     const data = await api.get("getAllProfileData", { profileId });
     state.profileSessions = data.sessions || [];
     state.profileStats = data.stats || [];
+    state.profileDivStats = data.divStats || [];
+    state.profileDivPos = data.divPos || {};
 
     cache.set(LS_KEY.PROFILE_DATA(profileId), {
       sessions: state.profileSessions,
       stats:    state.profileStats,
+      divStats: state.profileDivStats,
+      divPos:   state.profileDivPos,
     });
     cache.set(LS_KEY.LAST_MODIFIED(profileId), serverLastMod);
 
