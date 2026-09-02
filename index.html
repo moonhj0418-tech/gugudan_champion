@@ -4799,7 +4799,7 @@ function fireConfetti() {
 // 1. 상수 + 전역 state 확장
 // ============================================================
 
-const API_URL = "https://script.google.com/macros/s/AKfycbz7NjJUEjADIkVV4gSN9zpMs6K4hx1_guCsV8KFGXnsmigGWSXWDlxaufmItLi0JTpYzQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwqkvBV-cXCUQxB0WIXA0pOHqaItv9uSmhAoqsK4lwOmEfAH1Yf1nK4t2tFAp-o3CX3Tg/exec";
 
 // 아바타 풀 (12개) — 동물 4 + 과일 4 + 자연/특수 4
 const AVATAR_POOL = [
@@ -5738,6 +5738,38 @@ function attachBackButtonHandler() {
 }
 
 /**
+ * [v8.1] 안드로이드 APK의 하드웨어 뒤로가기 처리.
+ *
+ * 웹에서는 history.pushState + popstate 로 뒤로가기를 가로채지만,
+ * APK에서는 하드웨어 버튼이 네이티브(Capacitor)로 먼저 가기 때문에
+ * 그 방식이 통하지 않는다(그냥 앱이 닫혔음).
+ * @capacitor/app 플러그인의 backButton 이벤트를 받아 웹과 같은 메뉴를 띄운다.
+ *
+ * 번들러 없이 브릿지(window.Capacitor.Plugins)로 직접 접근한다.
+ */
+function attachNativeBackButtonHandler() {
+  const cap = window.Capacitor;
+  if (!cap || !cap.Plugins || !cap.Plugins.App) return false;
+  try {
+    cap.Plugins.App.addListener('backButton', () => {
+      if (state.navMenuOpen) {
+        closeNavMenu();
+      } else if (document.getElementById('modalOverlay').classList.contains('active')) {
+        // 다른 모달이 열려 있으면 그것부터 닫는다
+        closeModal();
+      } else {
+        showNavMenu();
+      }
+    });
+    console.log('[APK] 뒤로가기 버튼 연결됨');
+    return true;
+  } catch (err) {
+    console.warn('[APK] 뒤로가기 연결 실패 (무시):', err);
+    return false;
+  }
+}
+
+/**
  * [v5.1] 네비게이션 메뉴 표시.
  */
 function showNavMenu() {
@@ -6419,6 +6451,7 @@ async function bootstrap() {
 
   // [v5.1] 모바일 뒤로 가기 → 메뉴 모달
   attachBackButtonHandler();
+  attachNativeBackButtonHandler();   // [v8.1] APK 하드웨어 뒤로가기
 
   // loadingScreen 표시 + 데이터 받기
   await initialDataLoad();

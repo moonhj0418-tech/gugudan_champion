@@ -15,7 +15,7 @@
  * 배포할 때마다 CACHE_VERSION 을 올린다. (옛 캐시 자동 정리)
  */
 
-const CACHE_VERSION = 'v8-1';
+const CACHE_VERSION = 'v8-2';
 const NAV_TIMEOUT_MS = 3000;
 const CACHE_NAME = `gugudan-${CACHE_VERSION}`;
 
