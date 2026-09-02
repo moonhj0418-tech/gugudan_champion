@@ -5854,13 +5854,18 @@ function handleNavMenuAction(target) {
       }
       break;
     case 'exit':
-      // history 보충하지 않고 진짜 뒤로 가기 → HTML 닫힘
-      // popstate 핸들러는 한 단계 전 상태(앱 진입 전)로 처리
+      // [v8.2] APK에서는 네이티브 종료를 호출한다.
+      //   about:blank 로 이동시키면 Capacitor가 "앱 범위 밖 주소"로 보고
+      //   외부 브라우저를 열어버리기 때문(실제로 그 증상이 있었다).
+      if (window.Capacitor && window.Capacitor.Plugins
+          && window.Capacitor.Plugins.App
+          && typeof window.Capacitor.Plugins.App.exitApp === 'function') {
+        window.Capacitor.Plugins.App.exitApp();
+        break;
+      }
+      // 웹(브라우저): history 보충하지 않고 진짜 뒤로 가기 → 탭이 닫히거나 이전 페이지로
       window.history.back();
-      // back()이 호출되면 popstate가 다시 발생할 수 있으므로
-      // guard를 위해 약간의 지연
       setTimeout(() => {
-        // 그래도 안 닫혔다면 about:blank
         window.location.href = 'about:blank';
       }, 100);
       break;
