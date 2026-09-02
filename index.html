@@ -7,6 +7,7 @@
 <!-- v5.1: 모바일 뒤로 가기 → 통합 메뉴 모달 + 스크롤 힌트 메시지 개선 -->
 <!-- v6: 문제 방식 변경 — 빈칸(□) 인수 맞히기. 빈칸 위치(앞/뒤/혼합) × 문제 형식(가로곱셈/거꾸로곱셈/가로나눗셈/세로나눗셈, 고급·다중선택). 개수·중복 옵션 제거 -->
 <!-- v6.1: PWA — 홈 화면 설치 + 서비스워커 캐시로 초기 로딩 가속 -->
+<!-- v8: 나머지 있는 나눗셈 연습 추가 — 연습 종류 스위치(나눗셈/곱셈), 빈칸 4자리(나뉘는수·나누는수·몫·나머지)+혼합, 가로셈/세로셈. 나눗셈 통계는 곱셈과 분리 -->
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -487,6 +488,58 @@
 
   /* [v6] 문제 형식 선택 */
   .form-group { flex-wrap: wrap; }
+
+  /* [v8] 나눗셈 ── 가로셈 */
+  .question .rem-dots { color: var(--gray-soft); margin: 0 10px; letter-spacing: 0; }
+
+  /* [v8] 나눗셈 ── 세로셈 (나머지 포함) */
+  .question .ld2 {
+    display: inline-flex;
+    align-items: flex-start;
+    font-size: 0.78em;
+    letter-spacing: 0;
+  }
+  .question .ld2 .ld2-divisor {
+    padding: 0.42em 0.26em 0 0;   /* 몫 줄 높이만큼 내려서 나뉘는 수와 나란히 */
+  }
+  .question .ld2 .ld2-col { display: flex; flex-direction: column; align-items: stretch; }
+  .question .ld2 .ld2-quot {
+    text-align: center;
+    min-height: 1em;
+    padding: 0 0.3em 0.05em;
+  }
+  .question .ld2 .ld2-dividend {
+    border-top: 5px solid var(--dark);
+    border-left: 5px solid var(--dark);
+    border-top-left-radius: 20px;
+    padding: 0.14em 0.32em 0.06em 0.4em;
+    text-align: center;
+  }
+  .question .ld2 .ld2-rem {
+    margin-top: 0.28em;
+    padding-top: 0.16em;
+    border-top: 4px dashed var(--gray-soft);
+    text-align: center;
+    font-size: 0.78em;
+  }
+  .question .ld2 .ld2-rem .cap {
+    display: block;
+    font-size: 0.42em;
+    color: var(--gray-soft);
+    letter-spacing: 1px;
+    margin-bottom: 0.1em;
+  }
+  .question .ld2 .blank {
+    min-width: 0.72em;
+    height: 0.95em;
+    border-width: 4px;
+    vertical-align: middle;
+  }
+  .question .ld2 .blank.filled { height: auto; }
+
+  @media (max-width: 480px) {
+    .question .ld2 { font-size: 0.66em; }
+  }
 
   .answer-input {
     width: 100%;
@@ -2401,9 +2454,18 @@
     <h1 class="title">구구단 <span class="emoji">🏆</span> 챔피언</h1>
     <p class="subtitle">시간 안에 다 풀 수 있을까?</p>
 
+    <!-- [v8] 연습 종류 스위치 -->
+    <div class="option-group">
+      <div class="option-label"><span class="badge">1</span> 무엇을 연습할까?</div>
+      <div class="pill-group" id="practiceGroup">
+        <button class="pill selected" data-practice="div">나눗셈</button>
+        <button class="pill" data-practice="mul">곱셈</button>
+      </div>
+    </div>
+
     <div class="option-group">
       <div class="option-label-row">
-        <div class="option-label"><span class="badge">1</span> 어떤 단을 연습할까?</div>
+        <div class="option-label"><span class="badge">2</span> <span id="danLabelText">어떤 수로 나눌까?</span></div>
         <div class="select-toggle-group">
           <button type="button" class="select-toggle-btn" id="danSelectAll">전체</button>
           <button type="button" class="select-toggle-btn" id="danSelectNone">해제</button>
@@ -2421,33 +2483,65 @@
       </div>
     </div>
 
-    <div class="option-group">
-      <div class="option-label"><span class="badge">2</span> 빈칸(네모칸) 출현 위치</div>
-      <div class="pill-group" id="blankGroup">
-        <button class="pill" data-blank="front">앞</button>
-        <button class="pill" data-blank="back">뒤</button>
-        <button class="pill selected" data-blank="mixed">혼합</button>
+    <!-- ===== 나눗셈 옵션 ===== -->
+    <div id="divOptions">
+      <div class="option-group">
+        <div class="option-label"><span class="badge">3</span> 빈칸(네모칸) 자리</div>
+        <div class="pill-group form-group" id="divBlankGroup">
+          <button class="pill" data-dblank="dividend">나뉘는 수</button>
+          <button class="pill" data-dblank="divisor">나누는 수</button>
+          <button class="pill" data-dblank="quotient">몫</button>
+          <button class="pill" data-dblank="remainder">나머지</button>
+          <button class="pill selected" data-dblank="mixed">혼합</button>
+        </div>
+        <div style="margin-top:8px; font-size:12px; color:var(--gray-soft); line-height:1.6;">
+          <b>17 ÷ 5 = 3 … 2</b> 에서<br>
+          나뉘는 수 <b>□</b>÷5=3…2 · 나누는 수 17÷<b>□</b>=3…2 · 몫 17÷5=<b>□</b>…2 · 나머지 17÷5=3…<b>□</b>
+        </div>
       </div>
-      <div style="margin-top:8px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
-        앞 <b>□ × 5 = 15</b> · 뒤 <b>3 × □ = 15</b> · 혼합 랜덤
+
+      <div class="option-group">
+        <div class="option-label"><span class="badge">4</span> 문제 형식</div>
+        <div class="pill-group form-group" id="divFormGroup">
+          <button class="pill selected" data-dform="h">가로셈</button>
+          <button class="pill" data-dform="v">세로셈</button>
+        </div>
+        <div style="margin-top:6px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
+          여러 개 켜면 랜덤으로 섞여 나와요
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 곱셈 옵션 (복습용) ===== -->
+    <div id="mulOptions" hidden>
+      <div class="option-group">
+        <div class="option-label"><span class="badge">3</span> 빈칸(네모칸) 출현 위치</div>
+        <div class="pill-group" id="blankGroup">
+          <button class="pill" data-blank="front">앞</button>
+          <button class="pill" data-blank="back">뒤</button>
+          <button class="pill selected" data-blank="mixed">혼합</button>
+        </div>
+        <div style="margin-top:8px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
+          앞 <b>□ × 5 = 15</b> · 뒤 <b>3 × □ = 15</b> · 혼합 랜덤
+        </div>
+      </div>
+
+      <div class="option-group">
+        <div class="option-label"><span class="badge">4</span> 문제 형식</div>
+        <div class="pill-group form-group" id="formGroup">
+          <button class="pill selected" data-form="mul">가로 곱셈</button>
+          <button class="pill" data-form="mulRev">거꾸로 곱셈</button>
+          <button class="pill" data-form="divH">가로 나눗셈</button>
+          <button class="pill" data-form="divV">세로 나눗셈</button>
+        </div>
+        <div style="margin-top:6px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
+          여러 개 켜면 랜덤으로 섞여 나와요
+        </div>
       </div>
     </div>
 
     <div class="option-group">
-      <div class="option-label"><span class="badge">3</span> 문제 형식</div>
-      <div class="pill-group form-group" id="formGroup">
-        <button class="pill selected" data-form="mul">가로 곱셈</button>
-        <button class="pill" data-form="mulRev">거꾸로 곱셈</button>
-        <button class="pill" data-form="divH">가로 나눗셈</button>
-        <button class="pill" data-form="divV">세로 나눗셈</button>
-      </div>
-      <div style="margin-top:6px; font-size:12px; color:var(--gray-soft); line-height:1.5;">
-        여러 개 켜면 랜덤으로 섞여 나와요
-      </div>
-    </div>
-
-    <div class="option-group">
-      <div class="option-label"><span class="badge">4</span> 한 문제당 시간</div>
+      <div class="option-label"><span class="badge">5</span> 한 문제당 시간</div>
       <div class="pill-group" id="timeGroup">
         <button class="pill" data-time="5">5초</button>
         <button class="pill selected green" data-time="7">7초</button>
@@ -2899,6 +2993,10 @@ const state = {
   // [v3 추가] 시험 결과 수집
   questionStartTime: 0,        // 현재 문제 표시 시각 (응답시간 측정용)
   sessionAttempts: [],         // 시험 중 누적: [{ question, a, b, isCorrect, responseTime, isTimeout }, ...]
+  divAttempts: [],             // [v8] 나눗셈 시도 누적 (곱셈 통계와 분리)
+  practiceMode: 'div',         // [v8] 'div' | 'mul'
+  divBlankMode: 'mixed',       // [v8] 나눗셈 빈칸 자리
+  divForms: ['h'],             // [v8] 나눗셈 형식
   sessionStartedAt: null,      // 시험 시작 ISO 시각 (saveSession에 전달)
   sessionMasteryChanges: [],   // 백엔드 응답: [{ question, prev, next }]
 
@@ -2964,6 +3062,83 @@ function getFormModesSetting() {
   return forms.length ? forms : ['mul'];
 }
 
+
+// ============================================================
+// [v8] 연습 종류(나눗셈/곱셈) 스위치 + 나눗셈 옵션
+// ============================================================
+
+const LS_PRACTICE = 'gugudan_practice_mode';
+
+/** 현재 연습 종류: 'div'(나눗셈) | 'mul'(곱셈) */
+function getPracticeMode() {
+  const sel = document.querySelector('#practiceGroup .pill.selected');
+  return sel ? sel.dataset.practice : 'div';
+}
+
+/** 나눗셈 빈칸 자리: dividend | divisor | quotient | remainder | mixed */
+function getDivBlankSetting() {
+  const sel = document.querySelector('#divBlankGroup .pill.selected');
+  return sel ? sel.dataset.dblank : 'mixed';
+}
+
+/** 나눗셈 문제 형식 배열: ['h'] | ['v'] | ['h','v'] */
+function getDivFormsSetting() {
+  const f = Array.from(document.querySelectorAll('#divFormGroup .pill.selected')).map(b => b.dataset.dform);
+  return f.length ? f : ['h'];
+}
+
+/** 연습 종류에 맞춰 옵션 영역 표시/숨김 + 라벨 문구 변경 */
+function applyPracticeMode(mode) {
+  const isDiv = mode === 'div';
+  document.getElementById('divOptions').hidden = !isDiv;
+  document.getElementById('mulOptions').hidden = isDiv;
+  const lbl = document.getElementById('danLabelText');
+  if (lbl) lbl.textContent = isDiv ? '어떤 수로 나눌까?' : '어떤 단을 연습할까?';
+  // 단 버튼 라벨도 바꿔준다 (2단 ↔ 2)
+  document.querySelectorAll('#danGrid .dan-btn').forEach(b => {
+    b.textContent = isDiv ? b.dataset.dan : (b.dataset.dan + '단');
+  });
+  try { localStorage.setItem(LS_PRACTICE, mode); } catch (e) {}
+  updateInfo();
+}
+
+document.querySelectorAll('#practiceGroup .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#practiceGroup .pill').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    applyPracticeMode(btn.dataset.practice);
+  });
+});
+
+document.querySelectorAll('#divBlankGroup .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#divBlankGroup .pill').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    updateInfo();
+  });
+});
+
+document.querySelectorAll('#divFormGroup .pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const sel = document.querySelectorAll('#divFormGroup .pill.selected');
+    if (btn.classList.contains('selected') && sel.length === 1) return; // 최소 1개 유지
+    btn.classList.toggle('selected');
+    updateInfo();
+  });
+});
+
+// 마지막에 고른 연습 종류 복원
+(function restorePracticeMode() {
+  let saved = 'div';
+  try { saved = localStorage.getItem(LS_PRACTICE) || 'div'; } catch (e) {}
+  const btn = document.querySelector(`#practiceGroup .pill[data-practice="${saved}"]`);
+  if (btn) {
+    document.querySelectorAll('#practiceGroup .pill').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+  applyPracticeMode(saved);
+})();
+
 function getSelectedDans() {
   return Array.from(document.querySelectorAll('.dan-btn.selected')).map(b => parseInt(b.dataset.dan));
 }
@@ -2981,6 +3156,15 @@ function updateInfo() {
   const countSet = getCountSetting();
   const timeSet = getTimeSetting();
   const allowDup = false; // [v6] 중복 허용 옵션 제거 — 항상 고유 문제
+
+  // [v8] 나눗셈 모드: 나누는 수 d 마다 (몫 1~9) × (나머지 0~d-1) 가지
+  if (typeof getPracticeMode === 'function' && getPracticeMode() === 'div') {
+    const totalDiv = dans.reduce((acc, d) => acc + 9 * d, 0);
+    document.getElementById('totalQ').textContent = totalDiv;
+    document.getElementById('totalT').textContent = timeSet;
+    document.getElementById('startBtn').disabled = dans.length === 0;
+    return;
+  }
 
   const maxUnique = dans.length * 9; // 각 단에 ×1~×9
   let total;
@@ -3011,14 +3195,29 @@ function startQuiz() {
   const countSet = getCountSetting();
   state.allowDuplicates = false; // [v6] 중복 허용 옵션 제거
   state.timePerQ = getTimeSetting();
-  state.blankMode = getBlankModeSetting(); // [v6] 빈칸 위치: 'front' | 'back' | 'mixed'
-  state.formModes = getFormModesSetting(); // [v6] 문제 형식 배열: ['mul','mulRev','divH','divV'] 중
+  state.practiceMode = getPracticeMode();          // [v8] 'div' | 'mul'
+  state.blankMode = getBlankModeSetting();         // [v6] 곱셈 빈칸 위치
+  state.formModes = getFormModesSetting();         // [v6] 곱셈 문제 형식
+  state.divBlankMode = getDivBlankSetting();       // [v8] 나눗셈 빈칸 자리
+  state.divForms = getDivFormsSetting();           // [v8] 나눗셈 형식 ['h','v']
 
   // 문제 생성
   const allCombos = [];
-  for (const d of state.selectedDans) {
-    for (let m = 1; m <= 9; m++) {
-      allCombos.push({ a: d, b: m, answer: d * m });
+  if (state.practiceMode === 'div') {
+    // [v8] 나머지 있는 나눗셈: 나뉘는수 = 나누는수×몫 + 나머지
+    //      나머지는 0 ~ (나누는수-1) 전부 포함 (0 포함 = 나누어떨어지는 경우도 출제)
+    for (const d of state.selectedDans) {
+      for (let q = 1; q <= 9; q++) {
+        for (let r = 0; r < d; r++) {
+          allCombos.push({ kind: 'div', divisor: d, quotient: q, remainder: r, dividend: d * q + r });
+        }
+      }
+    }
+  } else {
+    for (const d of state.selectedDans) {
+      for (let m = 1; m <= 9; m++) {
+        allCombos.push({ kind: 'mul', a: d, b: m, answer: d * m });
+      }
     }
   }
 
@@ -3051,6 +3250,7 @@ function startQuiz() {
 
   // [v3] 데이터 수집 초기화
   state.sessionAttempts = [];
+  state.divAttempts = [];      // [v8]
   state.sessionStartedAt = new Date().toISOString();
   state.sessionMasteryChanges = [];
 
@@ -3112,26 +3312,96 @@ function buildQuestionHTML(a, b, form, blankPos, reveal) {
   }
 }
 
+/**
+ * [v8] 나머지 있는 나눗셈 문제 HTML.
+ *   q        : { divisor, quotient, remainder, dividend }
+ *   form     : 'h'(가로셈) | 'v'(세로셈)
+ *   blankPos : 'dividend' | 'divisor' | 'quotient' | 'remainder'
+ *   reveal   : null이면 빈칸(□), 값이 있으면 정답을 채워 강조(오답 목록용)
+ */
+function buildDivisionHTML(q, form, blankPos, reveal) {
+  const val = {
+    dividend: q.dividend,
+    divisor: q.divisor,
+    quotient: q.quotient,
+    remainder: q.remainder,
+  };
+  const cell = (key) => {
+    if (key !== blankPos) return `<span>${val[key]}</span>`;
+    return (reveal != null)
+      ? `<span class="blank filled">${val[key]}</span>`
+      : `<span class="blank"></span>`;
+  };
+
+  if (form === 'v') {
+    // 세로셈:   몫
+    //         나누는수 ⟌ 나뉘는수
+    //           ─── 나머지
+    return `<span class="ld2">` +
+             `<span class="ld2-divisor">${cell('divisor')}</span>` +
+             `<span class="ld2-col">` +
+               `<span class="ld2-quot">${cell('quotient')}</span>` +
+               `<span class="ld2-dividend">${cell('dividend')}</span>` +
+               `<span class="ld2-rem"><span class="cap">나머지</span>${cell('remainder')}</span>` +
+             `</span>` +
+           `</span>`;
+  }
+
+  // 가로셈: 17 ÷ 5 = 3 … 2
+  return `${cell('dividend')}<span class="op">÷</span>${cell('divisor')}` +
+         `<span class="eq">=</span>${cell('quotient')}` +
+         `<span class="rem-dots">…</span>${cell('remainder')}`;
+}
+
+/** [v8] 나눗셈 빈칸 자리 결정 */
+function pickDivBlank(mode) {
+  const all = ['dividend', 'divisor', 'quotient', 'remainder'];
+  if (mode && mode !== 'mixed' && all.indexOf(mode) >= 0) return mode;
+  return all[Math.floor(Math.random() * all.length)];
+}
+
+/** [v8] 나눗셈 문제를 사람이 읽는 문자열로 (통계/오답 표시용) */
+function divQuestionText(q) {
+  return `${q.dividend}÷${q.divisor}`;
+}
+
 function showQuestion() {
   const q = state.questions[state.currentIdx];
   const qEl = document.getElementById('questionText');
 
-  // [v6] 빈칸 위치 결정. front→'a'(정답 앞숫자), back→'b'(정답 뒤숫자), mixed→랜덤
-  let blank;
-  if (state.blankMode === 'front') blank = 'a';
-  else if (state.blankMode === 'back') blank = 'b';
-  else blank = Math.random() < 0.5 ? 'a' : 'b';
+  if (q.kind === 'div') {
+    // ===== [v8] 나머지 있는 나눗셈 =====
+    const blankPos = pickDivBlank(state.divBlankMode);
+    const dforms = (state.divForms && state.divForms.length) ? state.divForms : ['h'];
+    const dform = dforms[Math.floor(Math.random() * dforms.length)];
 
-  // [v6] 문제 형식 결정 (선택된 형식 중 랜덤)
-  const forms = state.formModes && state.formModes.length ? state.formModes : ['mul'];
-  const form = forms[Math.floor(Math.random() * forms.length)];
+    state.currentBlank = blankPos;
+    state.currentExpected =
+      blankPos === 'dividend' ? q.dividend :
+      blankPos === 'divisor'  ? q.divisor  :
+      blankPos === 'quotient' ? q.quotient : q.remainder;
+    q._blank = blankPos;
+    q._form = dform;
 
-  state.currentBlank = blank;
-  state.currentExpected = (blank === 'a') ? q.a : q.b;
-  q._blank = blank; // 결과 화면(틀린 문제)용 기록
-  q._form = form;
+    qEl.innerHTML = buildDivisionHTML(q, dform, blankPos, null);
+  } else {
+    // ===== [v6] 곱셈 =====
+    // 빈칸 위치 결정. front→'a'(정답 앞숫자), back→'b'(정답 뒤숫자), mixed→랜덤
+    let blank;
+    if (state.blankMode === 'front') blank = 'a';
+    else if (state.blankMode === 'back') blank = 'b';
+    else blank = Math.random() < 0.5 ? 'a' : 'b';
 
-  qEl.innerHTML = buildQuestionHTML(q.a, q.b, form, blank, null);
+    const forms = state.formModes && state.formModes.length ? state.formModes : ['mul'];
+    const form = forms[Math.floor(Math.random() * forms.length)];
+
+    state.currentBlank = blank;
+    state.currentExpected = (blank === 'a') ? q.a : q.b;
+    q._blank = blank;
+    q._form = form;
+
+    qEl.innerHTML = buildQuestionHTML(q.a, q.b, form, blank, null);
+  }
 
   document.getElementById('qCurrent').textContent = state.currentIdx + 1;
   const progress = ((state.currentIdx) / state.questions.length) * 100;
@@ -3222,14 +3492,30 @@ function handleAnswer(userAnswer) {
     // 0.01 미만은 측정 노이즈로 보고 0.01로 보정
     if (responseTime < 0.01) responseTime = 0.01;
   }
-  state.sessionAttempts.push({
-    question: `${q.a}×${q.b}`,
-    a: q.a,
-    b: q.b,
-    isCorrect: isCorrect,
-    responseTime: responseTime,
-    isTimeout: isTimeout,
-  });
+  if (q.kind === 'div') {
+    // [v8] 나눗셈은 곱셈 통계(qstats)와 분리해 따로 모은다. (2단계에서 divstats로 저장)
+    state.divAttempts.push({
+      question: divQuestionText(q),
+      divisor: q.divisor,
+      quotient: q.quotient,
+      remainder: q.remainder,
+      dividend: q.dividend,
+      blankPos: q._blank,
+      form: q._form,
+      isCorrect: isCorrect,
+      responseTime: responseTime,
+      isTimeout: isTimeout,
+    });
+  } else {
+    state.sessionAttempts.push({
+      question: `${q.a}×${q.b}`,
+      a: q.a,
+      b: q.b,
+      isCorrect: isCorrect,
+      responseTime: responseTime,
+      isTimeout: isTimeout,
+    });
+  }
 
   if (!isCorrect) {
     state.wrongQuestions.push({ ...q, userAnswer: isTimeout ? null : userAnswer });
@@ -3296,11 +3582,19 @@ function finishRound() {
     const item = document.createElement('div');
     item.className = 'wrong-item';
     const yourAns = q.userAnswer === null ? '⏰' : q.userAnswer;
-    // [v6] 빈칸형으로 표시 — 정답 인수를 강조
-    const product = q.a * q.b;
-    const eq = (q._blank === 'a')
-      ? `<span class="ans">${q.a}</span> × ${q.b} = ${product}`
-      : `${q.a} × <span class="ans">${q.b}</span> = ${product}`;
+    let eq;
+    if (q.kind === 'div') {
+      // [v8] 나눗셈: 정답 자리를 강조해서 전체 식을 보여준다
+      const mark = (key, v) => (q._blank === key ? `<span class="ans">${v}</span>` : String(v));
+      eq = `${mark('dividend', q.dividend)} ÷ ${mark('divisor', q.divisor)} = ` +
+           `${mark('quotient', q.quotient)} … ${mark('remainder', q.remainder)}`;
+    } else {
+      // [v6] 곱셈: 정답 인수를 강조
+      const product = q.a * q.b;
+      eq = (q._blank === 'a')
+        ? `<span class="ans">${q.a}</span> × ${q.b} = ${product}`
+        : `${q.a} × <span class="ans">${q.b}</span> = ${product}`;
+    }
     item.innerHTML = `${eq}<br><span class="your">내 답: ${yourAns}</span>`;
     grid.appendChild(item);
   });
@@ -3310,7 +3604,11 @@ function finishRound() {
 
 document.getElementById('nextBtn').addEventListener('click', () => {
   // 틀린 문제만으로 다시 시작
-  state.questions = shuffle(state.wrongQuestions.map(q => ({ a: q.a, b: q.b, answer: q.answer })));
+  state.questions = shuffle(state.wrongQuestions.map(q => (
+    q.kind === 'div'
+      ? { kind: 'div', divisor: q.divisor, quotient: q.quotient, remainder: q.remainder, dividend: q.dividend }
+      : { kind: 'mul', a: q.a, b: q.b, answer: q.answer }
+  )));
   state.wrongQuestions = [];
   state.currentIdx = 0;
   state.round++;
@@ -3339,7 +3637,7 @@ function showFinalScreen() {
 
   // [v4.1] 클라이언트 사이드 즉시 계산
   // 백엔드 응답을 기다리지 않고 sessionAttempts로 직접 새 stats / 마스터리 변경 / summary 계산
-  if (state.currentProfile && state.sessionAttempts.length > 0) {
+  if (state.currentProfile && state.practiceMode !== 'div' && state.sessionAttempts.length > 0) {
     const result = applyAttemptsLocally(state.profileStats || [], state.sessionAttempts);
     // state 갱신 — 화면 어디에서든 즉시 사용 가능
     state.profileStats = result.newStats;
@@ -3360,7 +3658,7 @@ function showFinalScreen() {
 
   // [v4.1] 백엔드 저장은 완전 조용히 백그라운드
   // 응답을 기다리지도, 결과로 화면을 갱신하지도 않음
-  if (state.currentProfile && state.sessionAttempts.length > 0) {
+  if (state.currentProfile && (state.sessionAttempts.length > 0 || state.divAttempts.length > 0)) {
     saveSessionResultsQuiet().catch(err => {
       console.error('[showFinalScreen] 백그라운드 저장 실패:', err);
       // 사용자에게 알리지 않음 (클라이언트 계산 결과는 이미 표시됨)
@@ -3381,19 +3679,59 @@ function showFinalScreen() {
  * 백엔드 응답에 포함된 masteryChanges/summary는 무시함
  * (클라이언트가 이미 동일 결과를 계산했으므로).
  */
+/**
+ * [v8] 텔레그램에 함께 보낼 "이 시험 설정" 한 줄 요약.
+ *   예) ⚙️ 나눗셈 · 세로셈 · 빈칸 몫 · 7초 · 나누는수 2,3,4
+ * 백엔드는 이 문자열을 그대로 붙이기만 하므로, 옵션이 바뀌어도 백엔드 수정이 필요 없다.
+ */
+function buildSettingsLine() {
+  const parts = [];
+  const dans = (state.selectedDans || []).slice().sort((a, b) => a - b);
+
+  if (state.practiceMode === 'div') {
+    parts.push('나눗셈');
+    const formName = { h: '가로셈', v: '세로셈' };
+    const forms = (state.divForms || []).map(f => formName[f] || f);
+    if (forms.length) parts.push(forms.join('+'));
+    const blankName = {
+      dividend: '나뉘는수', divisor: '나누는수',
+      quotient: '몫', remainder: '나머지', mixed: '혼합',
+    };
+    parts.push('빈칸 ' + (blankName[state.divBlankMode] || state.divBlankMode));
+    parts.push(state.timePerQ + '초');
+    if (dans.length) parts.push('나누는수 ' + dans.join(','));
+  } else {
+    parts.push('곱셈');
+    const formName = {
+      mul: '가로곱셈', mulRev: '거꾸로곱셈', divH: '가로나눗셈', divV: '세로나눗셈',
+    };
+    const forms = (state.formModes || []).map(f => formName[f] || f);
+    if (forms.length) parts.push(forms.join('+'));
+    const blankName = { front: '앞', back: '뒤', mixed: '혼합' };
+    parts.push('빈칸 ' + (blankName[state.blankMode] || state.blankMode));
+    parts.push(state.timePerQ + '초');
+    if (dans.length) parts.push(dans.join(',') + '단');
+  }
+  return '⚙️ ' + parts.join(' · ');
+}
+
 async function saveSessionResultsQuiet() {
   if (!state.currentProfile) return;
   const profileId = state.currentProfile.id;
-  const items = state.sessionAttempts.slice();
+  const isDiv = state.practiceMode === 'div';
+  // [v8] 나눗셈이면 divAttempts 를, 곱셈이면 sessionAttempts 를 기준으로 집계한다.
+  const items = isDiv ? state.divAttempts.slice() : state.sessionAttempts.slice();
 
-  // 1) 배치 저장 — 응답은 사용 안 함
-  try {
-    await api.post('updateQuestionStatsBatch', {
-      profileId: profileId,
-      items: items,
-    });
-  } catch (err) {
-    console.warn('[saveSessionResultsQuiet] batch 실패 (무시):', err.message || err);
+  // 1) 곱셈 통계 배치 저장 (나눗셈은 통계를 분리하므로 건너뜀 — 2단계에서 divstats 저장)
+  if (!isDiv && items.length > 0) {
+    try {
+      await api.post('updateQuestionStatsBatch', {
+        profileId: profileId,
+        items: items,
+      });
+    } catch (err) {
+      console.warn('[saveSessionResultsQuiet] batch 실패 (무시):', err.message || err);
+    }
   }
 
   // 2) 1라운드 요약 통계 계산
@@ -3426,8 +3764,11 @@ async function saveSessionResultsQuiet() {
         timePerQ: state.timePerQ,
         questionCount: state.questionCount,
         allowDuplicates: state.allowDuplicates,
+        practice: state.practiceMode,
         blankMode: state.blankMode,
         formModes: state.formModes,
+        divBlankMode: state.divBlankMode,
+        divForms: state.divForms,
         mode: 'normal',
       },
     });
@@ -3461,8 +3802,11 @@ async function saveSessionResultsQuiet() {
           dans: state.selectedDans,
           timePerQ: state.timePerQ,
           questionCount: state.questionCount,
+          practice: state.practiceMode,
           blankMode: state.blankMode,
           formModes: state.formModes,
+          divBlankMode: state.divBlankMode,
+          divForms: state.divForms,
           allowDuplicates: state.allowDuplicates,
           mode: 'normal',
         },
@@ -3519,6 +3863,8 @@ async function saveSessionResultsQuiet() {
       elapsedSec: elapsedSec,
       avgTime: round1AvgTime,
       weak: weak,
+      // [v8] 이 시험의 설정을 그대로 메시지에 덧붙인다 (백엔드 v3.5 이상에서 표시됨)
+      extraLines: [buildSettingsLine()],
     });
   } catch (err) {
     console.warn('[saveSessionResultsQuiet] 텔레그램 전송 실패 (무시):', err.message || err);
