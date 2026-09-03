@@ -3189,7 +3189,7 @@ function updateInfo() {
 
   // [v8] 나눗셈 모드: 나누는 수 d 마다 (몫 1~9) × (나머지 0~d-1) 가지
   if (typeof getPracticeMode === 'function' && getPracticeMode() === 'div') {
-    const totalDiv = dans.reduce((acc, d) => acc + 9 * d, 0);
+    const totalDiv = dans.length * 9; // [v8.3] 나누는 수마다 9문제(몫 1~9)
     document.getElementById('totalQ').textContent = totalDiv;
     document.getElementById('totalT').textContent = timeSet;
     document.getElementById('startBtn').disabled = dans.length === 0;
@@ -3234,13 +3234,26 @@ function startQuiz() {
   // 문제 생성
   const allCombos = [];
   if (state.practiceMode === 'div') {
-    // [v8] 나머지 있는 나눗셈: 나뉘는수 = 나누는수×몫 + 나머지
-    //      나머지는 0 ~ (나누는수-1) 전부 포함 (0 포함 = 나누어떨어지는 경우도 출제)
+    // [v8.3] 나머지 있는 나눗셈: 나뉘는수 = 나누는수×몫 + 나머지
+    //
+    //   나누는 수마다 "몫 1~9" 로 정확히 9문제만 만든다.
+    //   (예전에는 나머지 조합을 전부 만들어 9×d 문제가 됐다 — 2를 고르면 18문제)
+    //
+    //   나머지(0 ~ d-1)는 매번 순수 랜덤으로 뽑으면 한쪽으로 쏠릴 수 있어서,
+    //   후보를 섞어 만든 풀에서 순서대로 배분한다.
+    //   → 각 나머지가 floor(9/d) ~ ceil(9/d) 번만 나오도록 보장된다.
+    //     (d=9면 0~8이 정확히 한 번씩, d=2면 5:4)
     for (const d of state.selectedDans) {
+      const pool = [];
+      while (pool.length < 9) {
+        const set = [];
+        for (let r = 0; r < d; r++) set.push(r);
+        pool.push(...shuffle(set));
+      }
+      const rems = shuffle(pool.slice(0, 9)); // 몫과의 짝도 랜덤하게
       for (let q = 1; q <= 9; q++) {
-        for (let r = 0; r < d; r++) {
-          allCombos.push({ kind: 'div', divisor: d, quotient: q, remainder: r, dividend: d * q + r });
-        }
+        const r = rems[q - 1];
+        allCombos.push({ kind: 'div', divisor: d, quotient: q, remainder: r, dividend: d * q + r });
       }
     }
   } else {
