@@ -557,6 +557,41 @@
     transition: all 0.2s;
   }
   .answer-input:focus { background: var(--accent); }
+  .answer-input:not(:disabled) { cursor: default; }
+
+  /* [v8.5] 화면 숫자패드 */
+  .numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .numpad button {
+    height: 60px;
+    font-family: inherit;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--dark);
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 16px;
+    box-shadow: 0 4px 0 var(--dark);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.05s, box-shadow 0.05s;
+  }
+  .numpad button:active,
+  .numpad button.pressed {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--dark);
+  }
+  .numpad .np-back { background: var(--bg-1); }
+  .numpad .np-ok { background: var(--green); font-size: 24px; }
+  .numpad.locked button { opacity: 0.55; pointer-events: none; }
 
   .hint {
     text-align: center;
@@ -743,6 +778,19 @@
     .question { font-size: 56px; }
     .answer-input { font-size: 28px; padding: 16px; }
     .start-card, .quiz-card, .result-card { padding: 28px 22px; }
+    .quiz-card { padding: 20px 18px; }
+    .timer-ring { width: 64px; height: 64px; margin-bottom: 12px; }
+    .timer-text { font-size: 26px; }
+    .question { margin: 8px 0 20px; }
+    .answer-input { padding: 10px; }
+    .numpad { gap: 8px; margin-top: 12px; }
+    .numpad button { height: 54px; font-size: 26px; }
+    .numpad .np-ok { font-size: 21px; }
+    .hint { margin-top: 10px; }
+  }
+  @media (max-width: 480px) and (max-height: 700px) {
+    .question { font-size: 46px; margin: 4px 0 14px; }
+    .numpad button { height: 48px; }
   }
 
   /* ============================================================
@@ -2582,10 +2630,26 @@
       <span>2</span><span class="op">×</span><span class="blank"></span><span class="eq">=</span><span>6</span>
     </div>
 
-    <input type="number" inputmode="numeric" pattern="[0-9]*" class="answer-input" id="answerInput" placeholder="?" autocomplete="off">
+    <!-- [v8.5] 시스템 키보드 대신 화면 숫자패드 (iOS 숫자 키보드에는 엔터가 없음) -->
+    <input type="text" readonly tabindex="-1" class="answer-input" id="answerInput" placeholder="?" autocomplete="off">
+
+    <div class="numpad" id="numpad">
+      <button type="button" data-key="1">1</button>
+      <button type="button" data-key="2">2</button>
+      <button type="button" data-key="3">3</button>
+      <button type="button" data-key="4">4</button>
+      <button type="button" data-key="5">5</button>
+      <button type="button" data-key="6">6</button>
+      <button type="button" data-key="7">7</button>
+      <button type="button" data-key="8">8</button>
+      <button type="button" data-key="9">9</button>
+      <button type="button" data-key="back" class="np-back" aria-label="지우기">←</button>
+      <button type="button" data-key="0">0</button>
+      <button type="button" data-key="ok" class="np-ok">확인</button>
+    </div>
 
     <div class="hint">
-      답을 입력하고 <kbd>Enter</kbd>를 눌러요
+      숫자를 누르고 <kbd>확인</kbd>을 눌러요
     </div>
 
     <div class="feedback" id="feedback">
@@ -3460,7 +3524,7 @@ function showQuestion() {
   const input = document.getElementById('answerInput');
   input.value = '';
   input.disabled = false;
-  setTimeout(() => input.focus(), 100);
+  document.getElementById('numpad').classList.remove('locked');
 
   // [v3] 응답시간 측정 시작
   state.questionStartTime = Date.now();
@@ -3506,12 +3570,40 @@ function startTimer() {
   }, 1000);
 }
 
-document.getElementById('answerInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    const val = e.target.value.trim();
-    if (val !== '') {
-      handleAnswer(parseInt(val));
-    }
+// [v8.5] 화면 숫자패드 + PC 키보드 입력 (답은 최대 2자리: 나뉘는 수 최대 89)
+function numpadPress(key) {
+  const input = document.getElementById('answerInput');
+  if (input.disabled) return;
+  if (key === 'ok') {
+    const val = input.value.trim();
+    if (val !== '') handleAnswer(parseInt(val));
+  } else if (key === 'back') {
+    input.value = input.value.slice(0, -1);
+  } else if (input.value.length < 2) {
+    input.value = input.value === '0' ? key : input.value + key;
+  }
+}
+
+document.getElementById('numpad').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-key]');
+  if (btn) numpadPress(btn.dataset.key);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('quizScreen').classList.contains('active')) return;
+  const t = e.target;
+  if (t !== document.body && t.closest && t.closest('input:not(#answerInput), textarea, [contenteditable="true"]')) return;
+  let key = null;
+  if (/^[0-9]$/.test(e.key)) key = e.key;
+  else if (e.key === 'Backspace') key = 'back';
+  else if (e.key === 'Enter') key = 'ok';
+  if (!key) return;
+  e.preventDefault();
+  numpadPress(key);
+  const btn = document.querySelector(`#numpad button[data-key="${key}"]`);
+  if (btn) {
+    btn.classList.add('pressed');
+    setTimeout(() => btn.classList.remove('pressed'), 90);
   }
 });
 
@@ -3523,6 +3615,7 @@ function handleAnswer(userAnswer) {
 
   const input = document.getElementById('answerInput');
   input.disabled = true;
+  document.getElementById('numpad').classList.add('locked');
 
   const q = state.questions[state.currentIdx];
   const isTimeout = userAnswer === null;
