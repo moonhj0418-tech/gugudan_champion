@@ -2401,6 +2401,247 @@
 
 
   /* [v2 추가분 끝] */
+
+/* ============================================================
+   [v9] 용돈
+   ============================================================ */
+.welcome-allowance-btn {
+  width: 100%;
+  padding: 18px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FCD34D 100%);
+  color: #78350F;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s;
+  margin-bottom: 10px;
+}
+.welcome-allowance-btn:hover { transform: translateY(-2px); }
+.home-allowance-btn { margin-top: 18px; }
+.welcome-allowance-btn:active { transform: translateY(2px); }
+
+.allow-card {
+  background: white;
+  border-radius: 22px;
+  padding: 18px 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.allow-week-label { font-size: 0.95rem; color: var(--gray); font-weight: 700; text-align: center; }
+.allow-week-total {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: #B45309;
+  text-align: center;
+  line-height: 1.2;
+  margin: 4px 0 2px;
+}
+.allow-week-max { font-size: 0.95rem; color: var(--gray); text-align: center; margin-bottom: 14px; }
+.allow-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.allow-day {
+  background: #F7FAFC;
+  border-radius: 12px;
+  padding: 8px 2px;
+  text-align: center;
+  border: 2px solid transparent;
+}
+.allow-day .dname { font-size: 0.85rem; font-weight: 700; color: var(--gray); }
+.allow-day .damt { font-size: 0.8rem; font-weight: 700; color: var(--dark); margin-top: 4px; word-break: keep-all; }
+.allow-day.full { background: #FEF3C7; }
+.allow-day.full .damt { color: #B45309; }
+.allow-day.today { border-color: #F59E0B; }
+.allow-day.off .damt { color: #CBD5E0; }
+.allow-day { cursor: pointer; }
+.allow-day.pending .damt { color: #A0AEC0; }
+.allow-day .dstat { font-size: 0.68rem; font-weight: 800; margin-top: 3px; min-height: 1em; white-space: nowrap; }
+.allow-day .dstat.ok { color: #059669; }
+.allow-day .dstat.wait { color: #D97706; }
+.allow-week-nav { display: flex; align-items: center; justify-content: space-between; }
+.allow-week-nav button {
+  border: none;
+  background: #F7FAFC;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: inherit;
+  color: var(--dark);
+  cursor: pointer;
+}
+.allow-week-nav button:disabled { opacity: 0.25; cursor: default; }
+.allow-week-paid { text-align: center; font-size: 0.9rem; font-weight: 800; color: #059669; margin-bottom: 8px; }
+.allow-bonus.minus { background: #FEF2F2; }
+.allow-bonus.minus .ba { color: #B91C1C; }
+.allow-allclear.confirmed { background: #D1FAE5; color: #065F46; }
+.allow-task button:disabled { opacity: 0.6; cursor: default; }
+.day-task { padding: 6px 2px; font-size: 1rem; font-weight: 700; border-bottom: 1px dashed #E2E8F0; }
+.day-task.no { color: var(--gray); }
+.day-rule { margin: 10px 0 12px; font-size: 0.95rem; color: var(--gray); text-align: center; }
+.day-status { background: #D1FAE5; color: #065F46; border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; margin-bottom: 12px; }
+.day-status .sub { font-weight: 700; font-size: 0.9rem; margin-top: 4px; }
+.day-chips { display: flex; gap: 6px; margin-bottom: 10px; }
+.day-chips button {
+  flex: 1;
+  padding: 8px 2px;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  background: white;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.day-chips button.selected { border-color: #F59E0B; background: #FEF3C7; }
+.day-final { text-align: center; font-size: 1.2rem; font-weight: 800; color: #B45309; margin: 4px 0 14px; }
+
+.allow-today-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.allow-today-head .t { font-size: 1.15rem; font-weight: 800; color: var(--dark); }
+.allow-today-head .p { font-size: 1rem; font-weight: 700; color: #B45309; }
+.allow-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #F7FAFC;
+  margin-bottom: 8px;
+}
+.allow-task .tname {
+  flex: 1;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dark);
+  word-break: keep-all;
+}
+.allow-task.done { background: #ECFDF5; }
+.allow-task.done .tname { color: #047857; }
+.allow-task button {
+  min-width: 84px;
+  padding: 12px 10px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: inherit;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  background: #F59E0B;
+  color: white;
+  box-shadow: 0 3px 0 #B45309;
+  touch-action: manipulation;
+}
+.allow-task button:active { transform: translateY(2px); box-shadow: 0 1px 0 #B45309; }
+.allow-task.done button { background: #A7F3D0; color: #065F46; box-shadow: none; }
+.allow-empty { text-align: center; color: var(--gray); padding: 12px 0; }
+.allow-allclear {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #B45309;
+  background: #FEF3C7;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 6px;
+}
+.allow-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+.allow-actions button {
+  flex: 1;
+  padding: 14px 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: inherit;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  background: white;
+  color: var(--dark);
+  box-shadow: var(--shadow);
+}
+.allow-bonus-list { margin-top: 12px; }
+.allow-bonus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFF7ED;
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-top: 6px;
+  font-size: 0.95rem;
+}
+.allow-bonus .bt { flex: 1; font-weight: 700; color: var(--dark); word-break: keep-all; }
+.allow-bonus .ba { font-weight: 800; color: #B45309; white-space: nowrap; }
+.allow-bonus button {
+  border: none;
+  background: transparent;
+  color: var(--gray);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.allow-actions.three button { font-size: 0.95rem; padding: 14px 4px; }
+
+.hist-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.hist-filters button {
+  flex: 1;
+  min-width: 64px;
+  padding: 10px 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  border: 2px solid #E2E8F0;
+  border-radius: 999px;
+  background: white;
+  color: var(--dark);
+  cursor: pointer;
+}
+.hist-filters button.selected { background: #FEF3C7; border-color: #F59E0B; color: #78350F; }
+.hist-range { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+.hist-range[hidden] { display: none; }
+.hist-range input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+}
+.hist-total { font-size: 2.2rem; font-weight: 800; color: #B45309; text-align: center; }
+.hist-total-sub { font-size: 0.9rem; color: var(--gray); text-align: center; margin-top: 2px; }
+.hist-section-title { font-size: 1rem; font-weight: 800; color: var(--dark); margin: 4px 0 8px; }
+.hist-month, .hist-week {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #F7FAFC;
+  margin-bottom: 6px;
+}
+.hist-week { cursor: pointer; }
+.hist-week.current { background: #FFFBEB; cursor: default; }
+.hist-month .l, .hist-week .l { flex: 1; font-weight: 700; color: var(--dark); }
+.hist-month .r, .hist-week .r { font-weight: 800; color: #B45309; white-space: nowrap; }
+.hist-week .paid { font-size: 0.8rem; font-weight: 700; border-radius: 999px; padding: 3px 8px; white-space: nowrap; }
+.hist-week .paid.yes { background: #D1FAE5; color: #065F46; }
+.hist-week .paid.no { background: #FEE2E2; color: #991B1B; }
+.hist-detail-row { display: flex; justify-content: space-between; padding: 6px 2px; border-bottom: 1px dashed #E2E8F0; font-size: 0.95rem; }
+.hist-detail-row.total { font-weight: 800; font-size: 1.1rem; border-bottom: none; color: #B45309; }
+.modal-card textarea.form-input { min-height: 180px; resize: vertical; line-height: 1.5; font-size: 1rem; }
+.modal-card .form-hint { font-size: 0.85rem; color: var(--gray); margin: -10px 0 16px; }
+.modal-card .form-error { font-size: 0.95rem; color: #E53E3E; font-weight: 700; text-align: center; min-height: 1.2em; margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -2457,6 +2698,8 @@
     <div id="profileGrid" class="profile-grid">
       <!-- 카드들은 JS에서 동적으로 추가 -->
     </div>
+
+    <button class="welcome-allowance-btn home-allowance-btn" id="homeAllowanceBtn">💰 용돈</button>
   </div>
 </div>
 
@@ -2483,6 +2726,84 @@
     <button class="welcome-start-btn" id="welcomeStartBtn">시작하기 🚀</button>
     <button class="welcome-mastery-btn" id="welcomeMasteryBtn">🌳 내 성장 보기</button>
     <button class="welcome-back-btn" id="welcomeBackBtn">← 첫화면으로</button>
+  </div>
+</div>
+
+<!-- [v9] 용돈 화면 -->
+<div class="screen" id="allowanceScreen">
+  <div class="profile-header">
+    <button class="back-btn" id="allowanceBackBtn" title="뒤로">←</button>
+    <div class="header-avatar" id="allowanceHeaderAvatar">🦄</div>
+    <div class="header-info">
+      <div class="greeting">내 용돈 💰</div>
+      <div class="sub" id="allowanceSub">이번 주</div>
+    </div>
+  </div>
+
+  <div class="allow-card">
+    <div class="allow-week-nav">
+      <button id="allowPrevWeek" title="지난주">◀</button>
+      <div class="allow-week-label" id="allowWeekLabel">이번 주 모은 용돈</div>
+      <button id="allowNextWeek" title="다음 주">▶</button>
+    </div>
+    <div class="allow-week-total" id="allowWeekTotal">0원</div>
+    <div class="allow-week-paid" id="allowWeekPaid" hidden>✅ 지급 완료된 주예요</div>
+    <div class="allow-week-max" id="allowWeekMax"></div>
+    <div class="allow-days" id="allowDays"></div>
+  </div>
+
+  <div class="allow-card">
+    <div class="allow-today-head">
+      <span class="t">오늘 할 일</span>
+      <span class="p" id="allowTodayProgress"></span>
+    </div>
+    <div id="allowTaskList"></div>
+    <div class="allow-bonus-list" id="allowBonusList"></div>
+    <div class="allow-allclear" id="allowAllClear" hidden>🎉 오늘 할 일 끝! 1,000원 획득!</div>
+  </div>
+
+  <div class="allow-actions three">
+    <button id="allowBonusBtn">🎁 특별 보상</button>
+    <button id="allowHistoryBtn">📒 용돈 내역</button>
+    <button id="allowSettingsBtn">⚙️ 설정</button>
+  </div>
+</div>
+
+<!-- [v9] 용돈 내역 화면 -->
+<div class="screen" id="allowanceHistoryScreen">
+  <div class="profile-header">
+    <button class="back-btn" id="allowHistBackBtn" title="뒤로">←</button>
+    <div class="header-avatar" id="allowHistAvatar">🦄</div>
+    <div class="header-info">
+      <div class="greeting">용돈 내역 📒</div>
+      <div class="sub">매주 일요일에 정해진 용돈</div>
+    </div>
+  </div>
+
+  <div class="allow-card">
+    <div class="hist-filters" id="histFilters">
+      <button data-range="month" class="selected">이번 달</button>
+      <button data-range="year">올해</button>
+      <button data-range="all">전체</button>
+      <button data-range="custom">기간 지정</button>
+    </div>
+    <div class="hist-range" id="histRange" hidden>
+      <input type="date" id="histFrom" />
+      <span>~</span>
+      <input type="date" id="histTo" />
+    </div>
+    <div class="hist-total" id="histTotal">0원</div>
+    <div class="hist-total-sub" id="histTotalSub"></div>
+  </div>
+
+  <div class="allow-card" id="histMonthsCard">
+    <div class="hist-section-title">월별 합계</div>
+    <div id="histMonths"></div>
+  </div>
+
+  <div class="allow-card">
+    <div class="hist-section-title">주별 내역</div>
+    <div id="histWeeks"></div>
   </div>
 </div>
 
@@ -3005,6 +3326,10 @@
       <button class="nav-menu-item" data-target="start">
         <span class="icon">📝</span>
         <span class="label">새 시험 보기</span>
+      </button>
+      <button class="nav-menu-item" data-target="allowance">
+        <span class="icon">💰</span>
+        <span class="label">내 용돈</span>
       </button>
       <button class="nav-menu-item" data-target="mastery">
         <span class="icon">🌳</span>
@@ -5072,6 +5397,14 @@ function qDocId(a, b) {
   return `${Number(a)}x${Number(b)}`;
 }
 
+/**
+ * [v9] 용돈 전용 숨김 프로필(profiles/allowance). 친구 목록·변경 감지에서 뺀다.
+ * 초기화 중에도 불리므로 const 가 아니라 함수 안 리터럴로 둔다 (TDZ 방지).
+ */
+function isAllowanceProfileId(id) {
+  return String(id) === "allowance";
+}
+
 /** 프로필 문서의 lastModified 갱신값 */
 function nowIso() {
   return new Date().toISOString();
@@ -5083,7 +5416,7 @@ const fstore = {
   async getProfiles() {
     const { db, fs } = await fb();
     const snap = await fs.getDocs(fs.collection(db, "profiles"));
-    const list = snap.docs.map((d) => {
+    const list = snap.docs.filter((d) => !isAllowanceProfileId(d.id)).map((d) => {
       const v = d.data() || {};
       return {
         id: d.id,
@@ -5160,6 +5493,7 @@ const fstore = {
     const snap = await fs.getDocs(fs.collection(db, "profiles"));
     const out = {};
     snap.docs.forEach((d) => {
+      if (isAllowanceProfileId(d.id)) return;
       const v = d.data() || {};
       out[d.id] = v.lastModified ? String(v.lastModified) : null;
     });
@@ -5235,7 +5569,8 @@ const fstore = {
     if (!id) throw new Error("profileId가 비어있습니다.");
 
     // 하위 컬렉션 먼저 삭제 (Firestore는 자동 삭제 안 함)
-    for (const sub of ["sessions", "qstats", "divstats", "divpos"]) {
+    for (const sub of ["sessions", "qstats", "divstats", "divpos",
+                       "allowance", "allowanceDays", "allowanceBonus", "allowanceWeeks"]) {
       const snap = await fs.getDocs(fs.collection(db, "profiles", id, sub));
       // 배치는 500건 제한 → 나눠서 처리
       for (let i = 0; i < snap.docs.length; i += 400) {
@@ -5966,6 +6301,9 @@ function handleNavMenuAction(target) {
         enterProfileScreen();
       }
       break;
+    case 'allowance':
+      openAllowanceFromHome();
+      break;
     case 'mastery':
       if (state.currentProfile) {
         enterMasteryScreen('welcome');
@@ -6358,6 +6696,1239 @@ function enterStartScreen() {
 
 
 // ============================================================
+// [v9] 용돈
+// ============================================================
+//
+// 데이터 (기존 보안 규칙 profiles/** 범위 안):
+//   profiles/{pid}/allowance/config        할 일 목록, 비밀번호 해시, 시작일
+//   profiles/{pid}/allowanceDays/{날짜}     그날 할 일 스냅샷 + 완료 시각
+//
+// 하루: 할 일 N개 중 k개 완료 → k × 100원, 전부 완료 → 1,000원
+// 한 주(월~일): 기본 2,000원 + 매일 받은 금액
+// 비밀번호는 아이 잠금장치 수준(공개 앱 + 익명 로그인). 원문은 저장하지 않고 salt+SHA-256만 저장.
+// ============================================================
+
+const ALLOW_BASE_WEEKLY = 2000;
+const ALLOW_PER_TASK = 100;
+const ALLOW_DAILY_FULL = 1000;
+const ALLOW_MAX_TASKS = 10;
+const ALLOW_DAY_NAMES = ["월", "화", "수", "목", "금", "토", "일"];
+
+// http(LAN 테스트) 에서는 crypto.subtle 이 없어서 순수 JS 로 계산한다
+function allowSha256Hex(str) {
+  const K = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+  ];
+  const bytes = new TextEncoder().encode(str);
+  const total = Math.ceil((bytes.length + 9) / 64) * 64;
+  const buf = new Uint8Array(total);
+  buf.set(bytes);
+  buf[bytes.length] = 0x80;
+  const dv = new DataView(buf.buffer);
+  const bitLen = bytes.length * 8;
+  dv.setUint32(total - 8, Math.floor(bitLen / 0x100000000));
+  dv.setUint32(total - 4, bitLen >>> 0);
+  let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const W = new Uint32Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let off = 0; off < total; off += 64) {
+    for (let i = 0; i < 16; i++) W[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr(W[i-15], 7) ^ rotr(W[i-15], 18) ^ (W[i-15] >>> 3);
+      const s1 = rotr(W[i-2], 17) ^ rotr(W[i-2], 19) ^ (W[i-2] >>> 10);
+      W[i] = (W[i-16] + s0 + W[i-7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let i = 0; i < 64; i++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const t1 = (h + S1 + ((e & f) ^ (~e & g)) + K[i] + W[i]) >>> 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    H = [H[0]+a, H[1]+b, H[2]+c, H[3]+d, H[4]+e, H[5]+f, H[6]+g, H[7]+h].map(x => x >>> 0);
+  }
+  return H.map(x => x.toString(16).padStart(8, "0")).join("");
+}
+
+function allowMakeSecret(pw) {
+  const r = new Uint8Array(16);
+  crypto.getRandomValues(r);
+  const salt = Array.from(r, x => x.toString(16).padStart(2, "0")).join("");
+  return { salt, hash: allowSha256Hex(salt + ":" + pw) };
+}
+
+function allowCheckSecret(secret, pw) {
+  return !!(secret && secret.salt && secret.hash === allowSha256Hex(secret.salt + ":" + pw));
+}
+
+function allowAddDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return formatLocalDateClient(d);
+}
+
+/** 그 날짜가 속한 주의 월요일 */
+function allowWeekStart(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return allowAddDays(dateStr, -((d.getDay() + 6) % 7));
+}
+
+function allowWon(n) {
+  return Number(n || 0).toLocaleString("ko-KR") + "원";
+}
+
+/** 오늘 보여줄 할 일: 완료가 하나라도 있으면 그날 스냅샷, 아니면 현재 설정 */
+function allowTasksForDay(day, config) {
+  if (day && day.done && Object.keys(day.done).length && Array.isArray(day.tasks)) return day.tasks;
+  return (config && config.tasks) || [];
+}
+
+function allowDayEarned(day) {
+  if (!day || !Array.isArray(day.tasks) || !day.tasks.length) return 0;
+  const done = day.done || {};
+  const k = day.tasks.filter(t => done[t.id]).length;
+  return k === day.tasks.length ? ALLOW_DAILY_FULL : k * ALLOW_PER_TASK;
+}
+
+/**
+ * 한 주 합계. 시작일 이전 날짜는 제외, 기본금은 시작한 주부터 전액.
+ * 할 일 금액은 **부모가 확인한 날만** 들어간다 (규칙 금액 − 감액). 확인 전 금액은 pending 으로 따로 센다.
+ */
+function allowWeekSummary(weekStart, days, startDate, today, bonuses) {
+  let earned = 0;
+  let pending = 0;
+  let pendingDays = 0;
+  let deducted = 0;
+  let eligibleDays = 0;
+  const perDay = [];
+  for (let i = 0; i < 7; i++) {
+    const date = allowAddDays(weekStart, i);
+    const eligible = date >= startDate;
+    const future = date > today;
+    if (eligible) eligibleDays++;
+    const day = days[date];
+    const rule = eligible && !future ? allowDayEarned(day) : 0;
+    let amt = 0;
+    let status = "none";
+    let deduction = 0;
+    let reason = "";
+    if (eligible && !future && day && day.confirmed) {
+      status = "confirmed";
+      amt = Number(day.confirmed.amount) || 0;
+      deduction = Number(day.confirmed.deduction) || 0;
+      reason = String(day.confirmed.reason || "");
+      deducted += deduction;
+    } else if (rule > 0) {
+      status = "pending";
+      pending += rule;
+      pendingDays++;
+    }
+    earned += amt;
+    perDay.push({ date, eligible, future, rule, amt, status, deduction, reason });
+  }
+  const base = allowAddDays(weekStart, 6) >= startDate ? ALLOW_BASE_WEEKLY : 0;
+  const bonus = (bonuses || []).reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  return {
+    base, earned, bonus, pending, pendingDays, deducted,
+    total: base + earned + bonus,
+    max: base + eligibleDays * ALLOW_DAILY_FULL + bonus,
+    perDay,
+  };
+}
+
+function allowMd(dateStr) {
+  return `${Number(dateStr.slice(5, 7))}/${Number(dateStr.slice(8, 10))}`;
+}
+
+/** 할 일 입력(한 줄에 하나) → [{id,title}]. 같은 제목은 기존 id 를 유지한다. */
+function allowParseTasks(text, prevTasks) {
+  const titles = String(text || "").split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const prevByTitle = {};
+  (prevTasks || []).forEach(t => { prevByTitle[t.title] = t.id; });
+  const used = new Set();
+  return titles.map(title => {
+    let id = prevByTitle[title];
+    if (!id || used.has(id)) id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    used.add(id);
+    return { id, title: title.slice(0, 40) };
+  });
+}
+
+const allowStore = {
+  async loadConfig(pid) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDoc(fs.doc(db, "profiles", String(pid), "allowance", "config"));
+    return snap.exists() ? snap.data() : null;
+  },
+  async saveConfig(pid, config) {
+    const { db, fs } = await fb();
+    await fs.setDoc(fs.doc(db, "profiles", String(pid), "allowance", "config"),
+                    { ...config, updatedAt: nowIso() });
+  },
+  async loadDays(pid, dates) {
+    const { db, fs } = await fb();
+    const snaps = await Promise.all(dates.map(d =>
+      fs.getDoc(fs.doc(db, "profiles", String(pid), "allowanceDays", d))));
+    const out = {};
+    snaps.forEach((s, i) => { if (s.exists()) out[dates[i]] = s.data(); });
+    return out;
+  },
+  async saveDay(pid, day) {
+    const { db, fs } = await fb();
+    await fs.setDoc(fs.doc(db, "profiles", String(pid), "allowanceDays", day.date),
+                    { ...day, updatedAt: nowIso() });
+  },
+  async loadBonuses(pid) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(fs.collection(db, "profiles", String(pid), "allowanceBonus"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  },
+  async saveBonus(pid, bonus) {
+    const { db, fs } = await fb();
+    const { id, ...data } = bonus;
+    await fs.setDoc(fs.doc(db, "profiles", String(pid), "allowanceBonus", id), data);
+  },
+  async deleteBonus(pid, id) {
+    const { db, fs } = await fb();
+    await fs.deleteDoc(fs.doc(db, "profiles", String(pid), "allowanceBonus", id));
+  },
+  async loadWeeks(pid) {
+    const { db, fs } = await fb();
+    const snap = await fs.getDocs(fs.collection(db, "profiles", String(pid), "allowanceWeeks"));
+    return snap.docs.map(d => d.data());
+  },
+  async saveWeek(pid, week) {
+    const { db, fs } = await fb();
+    await fs.setDoc(fs.doc(db, "profiles", String(pid), "allowanceWeeks", week.weekStart), week);
+  },
+};
+
+/**
+ * 입력 모달 공통.
+ * fields: [{key, label, type:'password'|'text'|'textarea', numeric, placeholder, hint, value}]
+ * onConfirm(values, setError) → true 를 돌려주면 닫힌다.
+ */
+function allowModal({ title, subtitle, fields, confirmText, onConfirm }) {
+  const node = document.createElement("div");
+  node.className = "modal-card";
+  const t = document.createElement("div");
+  t.className = "modal-title";
+  t.textContent = title;
+  node.appendChild(t);
+  if (subtitle) {
+    const s = document.createElement("div");
+    s.className = "modal-subtitle";
+    s.textContent = subtitle;
+    node.appendChild(s);
+  }
+  const inputs = {};
+  fields.forEach(f => {
+    const label = document.createElement("label");
+    label.className = "form-label";
+    label.textContent = f.label;
+    node.appendChild(label);
+    const el = document.createElement(f.type === "textarea" ? "textarea" : "input");
+    el.className = "form-input";
+    if (f.type !== "textarea") el.type = f.type || "text";
+    if (f.numeric) el.inputMode = "numeric";
+    el.autocomplete = "off";
+    if (f.placeholder) el.placeholder = f.placeholder;
+    if (f.value) el.value = f.value;
+    node.appendChild(el);
+    inputs[f.key] = el;
+    if (f.hint) {
+      const h = document.createElement("div");
+      h.className = "form-hint";
+      h.textContent = f.hint;
+      node.appendChild(h);
+    }
+  });
+  const err = document.createElement("div");
+  err.className = "form-error";
+  node.appendChild(err);
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+  const cancel = document.createElement("button");
+  cancel.className = "btn-secondary";
+  cancel.textContent = "취소";
+  const ok = document.createElement("button");
+  ok.className = "btn-primary";
+  ok.textContent = confirmText || "확인";
+  actions.append(cancel, ok);
+  node.appendChild(actions);
+
+  const setError = (msg) => { err.textContent = msg || ""; };
+  const submit = async () => {
+    if (ok.disabled) return;
+    ok.disabled = true;
+    try {
+      const values = {};
+      Object.keys(inputs).forEach(k => { values[k] = inputs[k].value; });
+      if (await onConfirm(values, setError)) closeModal();
+    } catch (e) {
+      console.error("[allowance] 저장 실패:", e);
+      setError("저장하지 못했어요. 인터넷 연결을 확인해 주세요.");
+    } finally {
+      ok.disabled = false;
+    }
+  };
+  cancel.addEventListener("click", () => closeModal());
+  ok.addEventListener("click", submit);
+  Object.values(inputs).forEach(el => {
+    if (el.tagName === "INPUT") el.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+  });
+  openModal(node);
+  const first = Object.values(inputs)[0];
+  if (first) setTimeout(() => first.focus(), 100);
+  return { node, inputs, setError };
+}
+
+/** 예/아니오 확인 모달 */
+function allowConfirm(message, okText, onOk) {
+  const node = document.createElement("div");
+  node.className = "modal-card";
+  const t = document.createElement("div");
+  t.className = "modal-title";
+  t.style.fontSize = "1.2rem";
+  t.textContent = message;
+  node.appendChild(t);
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+  actions.style.marginTop = "16px";
+  const no = document.createElement("button");
+  no.className = "btn-secondary";
+  no.textContent = "아니요";
+  const yes = document.createElement("button");
+  yes.className = "btn-primary";
+  yes.textContent = okText || "네";
+  actions.append(no, yes);
+  node.appendChild(actions);
+  no.addEventListener("click", () => closeModal());
+  yes.addEventListener("click", () => { closeModal(); onOk(); });
+  openModal(node);
+}
+
+function allowValidPin(pin) {
+  return /^\d{4,8}$/.test(pin);
+}
+
+/**
+ * 첫 화면 [💰 용돈]. 용돈은 전용 숨김 프로필 profiles/allowance 하나만 쓴다.
+ * 구구단 친구 프로필과 분리돼 있어서 친구를 지우거나 바꿔도 용돈 기록은 그대로다.
+ */
+function openAllowanceFromHome() {
+  state.allowanceProfile = { id: "allowance", name: "용돈", avatar: "💰" };
+  enterAllowanceScreen();
+}
+
+async function enterAllowanceScreen() {
+  const p = state.allowanceProfile;
+  if (!p) { openAllowanceFromHome(); return; }
+  if (!state.allowanceUnlocked) state.allowanceUnlocked = {};
+
+  ui.loading(true, "용돈 불러오는 중... 💰");
+  let config;
+  try {
+    config = await allowStore.loadConfig(p.id);
+  } catch (e) {
+    console.error("[allowance] 설정 읽기 실패:", e);
+    ui.toast("용돈 정보를 못 불러왔어요. 다시 해볼래?", "error", 3500);
+    return;
+  } finally {
+    ui.loading(false);
+  }
+
+  if (!config) { allowanceOpenSetup(p); return; }
+  if (state.allowanceUnlocked[p.id]) { await allowanceShow(p, config); return; }
+
+  allowModal({
+    title: "용돈 비밀번호 🔒",
+    subtitle: "용돈 비밀번호를 넣어줘",
+    fields: [{ key: "pin", label: "비밀번호", type: "password", numeric: true, placeholder: "숫자 4자리 이상" }],
+    confirmText: "열기",
+    onConfirm: async (v, setError) => {
+      if (!allowCheckSecret(config.pin, v.pin.trim())) {
+        setError("비밀번호가 달라요. 다시 해볼래?");
+        return false;
+      }
+      state.allowanceUnlocked[p.id] = true;
+      setTimeout(() => allowanceShow(p, config), 0);
+      return true;
+    },
+  });
+}
+
+/** 처음 설정 — 부모님이 비밀번호와 할 일을 정한다 */
+async function allowanceOpenSetup(p) {
+  const fields = [
+    { key: "parent", label: "부모 비밀번호 만들기", type: "password", hint: "4자 이상. 확인·특별 보상·설정에 써요" },
+    { key: "parent2", label: "부모 비밀번호 한 번 더", type: "password" },
+  ];
+  fields.push(
+    { key: "pin", label: "용돈 비밀번호 (아이용)", type: "password", numeric: true, placeholder: "숫자 4~8자리", hint: "아이가 용돈 화면을 열 때 써요" },
+    { key: "tasks", label: `매일 할 일 (한 줄에 하나, 최대 ${ALLOW_MAX_TASKS}개)`, type: "textarea",
+      placeholder: "구구단 시험 1회\n수학 문제집 2장\n독서 30분" },
+  );
+
+  allowModal({
+    title: "용돈 시작하기 💰",
+    subtitle: "부모님이 설정해 주세요",
+    fields,
+    confirmText: "시작",
+    onConfirm: async (v, setError) => {
+      const parentPw = v.parent;
+      if (parentPw.length < 4) { setError("부모 비밀번호는 4자 이상이어야 해요"); return false; }
+      if (parentPw !== v.parent2) { setError("부모 비밀번호 두 개가 서로 달라요"); return false; }
+      const pin = v.pin.trim();
+      if (!allowValidPin(pin)) { setError("용돈 비밀번호는 숫자 4~8자리예요"); return false; }
+      const tasks = allowParseTasks(v.tasks, []);
+      if (!tasks.length) { setError("할 일을 하나 이상 적어주세요"); return false; }
+      if (tasks.length > ALLOW_MAX_TASKS) { setError(`할 일은 ${ALLOW_MAX_TASKS}개까지예요`); return false; }
+
+      const config = {
+        tasks,
+        pin: allowMakeSecret(pin),
+        parent: allowMakeSecret(parentPw),
+        startDate: formatLocalDateClient(new Date()),
+        createdAt: nowIso(),
+      };
+      const { db, fs } = await fb();
+      await fs.setDoc(fs.doc(db, "profiles", String(p.id)),
+                      { name: p.name, avatar: p.avatar, kind: "allowance", createdAt: nowIso() });
+      await allowStore.saveConfig(p.id, config);
+      state.allowanceUnlocked[p.id] = true;
+      ui.toast("용돈 시작! 💰", "success");
+      setTimeout(() => allowanceShow(p, config), 0);
+      return true;
+    },
+  });
+}
+
+/** 부모 비밀번호 확인 후 onOk(config) */
+function allowanceAskParent(config, title, onOk) {
+  allowModal({
+    title: title || "부모님 확인 🔐",
+    fields: [{ key: "pw", label: "부모 비밀번호", type: "password" }],
+    onConfirm: async (v, setError) => {
+      if (!allowCheckSecret(config.parent, v.pw)) { setError("비밀번호가 달라요"); return false; }
+      setTimeout(() => onOk(), 260);
+      return true;
+    },
+  });
+}
+
+/** 지난 한 주의 기록 문서를 만든다. 지급 상태는 이전 문서에서 이어받는다. */
+function allowBuildWeek(weekStart, days, config, bonuses, prevWeek) {
+  const wb = bonuses.filter(b => b.weekStart === weekStart);
+  const sum = allowWeekSummary(weekStart, days, config.startDate, allowAddDays(weekStart, 6), wb);
+  return {
+    weekStart,
+    payDate: allowAddDays(weekStart, 6),
+    base: sum.base,
+    earned: sum.earned,
+    bonus: sum.bonus,
+    total: sum.total,
+    pendingDays: sum.pendingDays,
+    pending: sum.pending,
+    perDay: sum.perDay.map(d => (d.eligible
+      ? { amt: d.amt, rule: d.rule, status: d.status, deduction: d.deduction, reason: d.reason }
+      : null)),
+    bonusItems: wb.map(b => ({ title: b.title, amount: b.amount, date: b.date })),
+    paid: !!(prevWeek && prevWeek.paid),
+    paidAt: (prevWeek && prevWeek.paidAt) || null,
+    finalizedAt: (prevWeek && prevWeek.finalizedAt) || nowIso(),
+    updatedAt: nowIso(),
+  };
+}
+
+/**
+ * 지난 주(들) 정리. 서버가 일요일 자정에 돌지 않으므로 앱을 열 때 처리한다.
+ * - 기록이 없는 지난주는 새로 만든다 (안 연 주도 기본금 2,000원)
+ * - 아직 지급 전이고 확인 대기 날짜가 남은 주는 다시 계산한다 (다른 기기에서 늦게 확인한 경우)
+ * - 지급 완료된 주는 건드리지 않는다
+ */
+async function allowFinalizeWeeks(pid, config, bonuses, today) {
+  const weeks = await allowStore.loadWeeks(pid);
+  const byStart = {};
+  weeks.forEach(w => { byStart[w.weekStart] = w; });
+  const curWeek = allowWeekStart(today);
+  const created = [];
+  for (let w = allowWeekStart(config.startDate); w < curWeek; w = allowAddDays(w, 7)) {
+    const prev = byStart[w];
+    if (prev && (prev.paid || !prev.pendingDays)) continue;
+    const dates = Array.from({ length: 7 }, (_, i) => allowAddDays(w, i));
+    const days = await allowStore.loadDays(pid, dates);
+    const week = allowBuildWeek(w, days, config, bonuses, prev);
+    if (prev && JSON.stringify({ ...prev, updatedAt: 0 }) === JSON.stringify({ ...week, updatedAt: 0 })) continue;
+    await allowStore.saveWeek(pid, week);
+    byStart[w] = week;
+    if (!prev) created.push(week);
+  }
+  const list = Object.values(byStart).sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+  return { weeks: list, created };
+}
+
+/** 지난주 날짜를 늦게 확인했을 때 그 주 기록을 다시 계산해 저장한다 */
+async function allowRefreshWeekRecord(a, weekStart) {
+  if (weekStart >= allowWeekStart(a.today)) return;
+  const prev = (a.weeks || []).find(w => w.weekStart === weekStart);
+  const dates = Array.from({ length: 7 }, (_, i) => allowAddDays(weekStart, i));
+  const missing = dates.filter(d => !(d in a.days));
+  if (missing.length) Object.assign(a.days, await allowStore.loadDays(a.pid, missing));
+  const week = allowBuildWeek(weekStart, a.days, a.config, a.bonuses || [], prev);
+  await allowStore.saveWeek(a.pid, week);
+  a.weeks = [...(a.weeks || []).filter(w => w.weekStart !== weekStart), week]
+    .sort((x, y) => y.weekStart.localeCompare(x.weekStart));
+}
+
+async function allowanceShow(p, config) {
+  const today = formatLocalDateClient(new Date());
+  const weekStart = allowWeekStart(today);
+  const dates = Array.from({ length: 7 }, (_, i) => allowAddDays(weekStart, i));
+  let days = {};
+  let bonuses = [];
+  let weeks = [];
+  let created = [];
+  try {
+    [days, bonuses] = await Promise.all([allowStore.loadDays(p.id, dates), allowStore.loadBonuses(p.id)]);
+    ({ weeks, created } = await allowFinalizeWeeks(p.id, config, bonuses, today));
+  } catch (e) {
+    console.error("[allowance] 기록 읽기 실패:", e);
+    ui.toast("기록을 못 불러왔어요. 인터넷을 확인해 주세요.", "error", 3500);
+  }
+  state.allowance = { pid: p.id, config, days, today, weekStart, viewWeek: weekStart, bonuses, weeks };
+  if (created.length) {
+    const last = created[created.length - 1];
+    const msg = last.pendingDays
+      ? `지난주 용돈 정리! 확인 대기 ${last.pendingDays}일이 남았어요`
+      : `지난주 용돈 ${allowWon(last.total)} 확정! 📒`;
+    setTimeout(() => ui.toast(msg, "success", 3500), 400);
+  }
+  document.getElementById("allowanceHeaderAvatar").textContent = p.avatar || "🦄";
+  showScreen("allowanceScreen");
+  window.scrollTo({ top: 0, behavior: "instant" });
+  allowanceRender();
+}
+
+async function allowanceMoveWeek(dir) {
+  const a = state.allowance;
+  if (!a) return;
+  const target = allowAddDays(a.viewWeek, dir * 7);
+  if (target > a.weekStart || target < allowWeekStart(a.config.startDate)) return;
+  const dates = Array.from({ length: 7 }, (_, i) => allowAddDays(target, i));
+  const missing = dates.filter(d => !(d in a.days));
+  if (missing.length) {
+    try {
+      Object.assign(a.days, await allowStore.loadDays(a.pid, missing));
+    } catch (e) {
+      ui.toast("기록을 못 불러왔어요", "error");
+      return;
+    }
+  }
+  a.viewWeek = target;
+  allowanceRender();
+}
+
+function allowWeekLabel(viewWeek, curWeek) {
+  if (viewWeek === curWeek) return "이번 주 모은 용돈";
+  if (viewWeek === allowAddDays(curWeek, -7)) return "지난주 용돈";
+  return `${allowMd(viewWeek)} 주 용돈`;
+}
+
+function allowanceRender() {
+  const a = state.allowance;
+  if (!a) return;
+  const { config, days, today, weekStart } = a;
+  const view = a.viewWeek || weekStart;
+  const viewBonuses = (a.bonuses || []).filter(b => b.weekStart === view);
+  const sum = allowWeekSummary(view, days, config.startDate, today, viewBonuses);
+  const weekDoc = (a.weeks || []).find(w => w.weekStart === view);
+  const paid = !!(weekDoc && weekDoc.paid);
+
+  document.getElementById("allowanceSub").textContent =
+    `${allowMd(view)}~${allowMd(allowAddDays(view, 6))} · 일요일 확정`;
+  document.getElementById("allowWeekLabel").textContent = allowWeekLabel(view, weekStart);
+  document.getElementById("allowPrevWeek").disabled = view <= allowWeekStart(config.startDate);
+  document.getElementById("allowNextWeek").disabled = view >= weekStart;
+  document.getElementById("allowWeekPaid").hidden = !paid;
+  document.getElementById("allowWeekTotal").textContent = allowWon(sum.total);
+  let line = `기본 ${allowWon(sum.base)} + 할 일 ${allowWon(sum.earned)}`;
+  if (sum.bonus) line += ` + 특별 ${allowWon(sum.bonus)}`;
+  if (sum.pending) line += ` · 확인 대기 +${allowWon(sum.pending)}`;
+  else if (view === weekStart) line += ` · 최대 ${allowWon(sum.max)}`;
+  document.getElementById("allowWeekMax").textContent = line;
+
+  // 오늘 할 일 박스 안: 오늘의 감액 / 특별 보상 (지난 날짜는 요일 칸 금액 + 칸 상세에서 본다)
+  const listEl = document.getElementById("allowBonusList");
+  listEl.innerHTML = "";
+  const addLine = (cls, text, amountText, bonusId) => {
+    const row = document.createElement("div");
+    row.className = "allow-bonus" + (cls ? " " + cls : "");
+    const t = document.createElement("span");
+    t.className = "bt";
+    t.textContent = text;
+    const amt = document.createElement("span");
+    amt.className = "ba";
+    amt.textContent = amountText;
+    row.append(t, amt);
+    if (bonusId) {
+      const del = document.createElement("button");
+      del.type = "button";
+      del.dataset.bonusId = bonusId;
+      del.title = "삭제 (부모님)";
+      del.textContent = "✕";
+      row.appendChild(del);
+    }
+    listEl.appendChild(row);
+  };
+  const todayDay = days[today];
+  const todayBonuses = (a.bonuses || []).filter(b => b.date === today);
+  const todayBonusSum = todayBonuses.reduce((s2, b) => s2 + (Number(b.amount) || 0), 0);
+  if (todayDay && todayDay.confirmed && todayDay.confirmed.deduction > 0) {
+    const c = todayDay.confirmed;
+    addLine("minus", `➖ 감액${c.reason ? " · " + c.reason : ""}`, "−" + allowWon(c.deduction));
+  }
+  todayBonuses.forEach(b => addLine("", `🎁 ${b.title}`, "+" + allowWon(b.amount), b.id));
+
+  const daysEl = document.getElementById("allowDays");
+  daysEl.innerHTML = "";
+  sum.perDay.forEach((d, i) => {
+    const cell = document.createElement("div");
+    cell.className = "allow-day";
+    cell.dataset.date = d.date;
+    if (d.date === today) cell.classList.add("today");
+    if (d.status === "confirmed" && d.amt >= ALLOW_DAILY_FULL) cell.classList.add("full");
+    if (d.status === "pending") cell.classList.add("pending");
+    if (!d.eligible || d.future) cell.classList.add("off");
+    const n = document.createElement("div");
+    n.className = "dname";
+    n.textContent = ALLOW_DAY_NAMES[i];
+    const m = document.createElement("div");
+    m.className = "damt";
+    // 요일 칸 금액 = 그날 할 일(확인 금액, 확인 전이면 규칙 금액) + 그날 준 특별 보상
+    const dayBonus = viewBonuses.filter(b => b.date === d.date).reduce((s2, b) => s2 + (Number(b.amount) || 0), 0);
+    const shown = (d.status === "confirmed" ? d.amt : d.rule) + dayBonus;
+    m.textContent = !d.eligible ? "–" : d.future ? "·" : shown ? shown.toLocaleString("ko-KR") : "0";
+    const s = document.createElement("div");
+    s.className = "dstat";
+    if (d.status === "confirmed") { s.classList.add("ok"); s.textContent = "✅확인"; }
+    else if (d.status === "pending") { s.classList.add("wait"); s.textContent = "⏳대기"; }
+    else if (dayBonus) { s.textContent = "🎁"; }
+    cell.append(n, m, s);
+    daysEl.appendChild(cell);
+  });
+
+  const day = days[today];
+  const tasks = allowTasksForDay(day, config);
+  const done = (day && day.done) || {};
+  const locked = !!(day && day.confirmed);
+  const k = tasks.filter(t => done[t.id]).length;
+  const todayRule = allowDayEarned({ tasks, done });
+  document.getElementById("allowTodayProgress").textContent =
+    !tasks.length ? "" : locked ? `${k}/${tasks.length} · ${allowWon(day.confirmed.amount + todayBonusSum)} ✅`
+                                : `${k}/${tasks.length} · ${allowWon(todayRule + todayBonusSum)}`;
+
+  const list = document.getElementById("allowTaskList");
+  list.innerHTML = "";
+  if (!tasks.length) {
+    const e = document.createElement("div");
+    e.className = "allow-empty";
+    e.textContent = "할 일이 없어요. 부모님께 설정을 부탁해요!";
+    list.appendChild(e);
+  }
+  tasks.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "allow-task" + (done[t.id] ? " done" : "");
+    const name = document.createElement("span");
+    name.className = "tname";
+    name.textContent = (done[t.id] ? "✅ " : "⬜ ") + t.title;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.taskId = t.id;
+    btn.textContent = done[t.id] ? "완료!" : "완료";
+    btn.disabled = locked;
+    row.append(name, btn);
+    list.appendChild(row);
+  });
+
+  const banner = document.getElementById("allowAllClear");
+  banner.classList.toggle("confirmed", locked);
+  if (locked) {
+    const c = day.confirmed;
+    banner.textContent = `✅ 부모님 확인 완료 · 오늘 ${allowWon(c.amount + todayBonusSum)}`;
+    banner.hidden = false;
+  } else {
+    banner.textContent = "🎉 오늘 할 일 끝! 1,000원 — 부모님이 확인하면 들어와요";
+    banner.hidden = !(tasks.length && k === tasks.length);
+  }
+}
+
+async function allowanceToggleTask(taskId) {
+  const a = state.allowance;
+  if (!a) return;
+  const p = state.allowanceProfile;
+  const today = formatLocalDateClient(new Date());
+  if (today !== a.today) {
+    ui.toast("날짜가 바뀌었어요! 새 하루 시작 🌅", "info");
+    await allowanceShow(p, a.config);
+    return;
+  }
+
+  const prev = a.days[today];
+  if (prev && prev.confirmed) {
+    ui.toast("부모님이 확인한 날이라 바꿀 수 없어요", "info");
+    return;
+  }
+  const tasks = allowTasksForDay(prev, a.config);
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  const done = { ...((prev && prev.done) || {}) };
+
+  if (done[taskId]) {
+    // 브라우저 confirm() 은 일부 웹뷰/임베드 브라우저에서 뜨지 않고 바로 false 가 된다 → 앱 모달 사용
+    allowConfirm(`'${task.title}' 완료를 취소할까요?`, "취소할게요", () => {
+      allowanceToggleTaskApply(taskId, true);
+    });
+    return;
+  }
+  done[taskId] = nowIso();
+  await allowanceSaveToday(p, a, prev, tasks, done, taskId);
+}
+
+/** 완료 취소 확정 (확인 모달 이후) */
+async function allowanceToggleTaskApply(taskId) {
+  const a = state.allowance;
+  if (!a) return;
+  const p = state.allowanceProfile;
+  const today = formatLocalDateClient(new Date());
+  if (today !== a.today) { await allowanceShow(p, a.config); return; }
+  const prev = a.days[today];
+  if (prev && prev.confirmed) return;
+  const tasks = allowTasksForDay(prev, a.config);
+  const done = { ...((prev && prev.done) || {}) };
+  delete done[taskId];
+  await allowanceSaveToday(p, a, prev, tasks, done, taskId);
+}
+
+async function allowanceSaveToday(p, a, prev, tasks, done, taskId) {
+  const today = a.today;
+  const day = { ...(prev || {}), date: today, tasks: tasks.map(t => ({ id: t.id, title: t.title })), done };
+  const wasAll = prev ? allowDayEarned(prev) === ALLOW_DAILY_FULL : false;
+
+  a.days[today] = day;
+  allowanceRender();
+  const nowAll = allowDayEarned(day) === ALLOW_DAILY_FULL;
+  if (nowAll && !wasAll) {
+    fireConfetti();
+    ui.toast("오늘 할 일 끝! 1,000원! 부모님께 확인받아요 🎉", "success", 3000);
+  } else if (done[taskId]) {
+    ui.toast(`+${ALLOW_PER_TASK}원! 잘했어 👍`, "success", 1500);
+  }
+
+  // 연달아 눌러도 막지 않는다. 저장은 순서대로, 매번 그 시점의 최신 상태를 쓴다.
+  a.saveChain = (a.saveChain || Promise.resolve()).then(async () => {
+    try {
+      await allowStore.saveDay(p.id, a.days[today] || day);
+    } catch (e) {
+      console.error("[allowance] 저장 실패:", e);
+      ui.toast("저장을 못 했어요. 다시 불러올게요", "error", 3000);
+      const fresh = await allowStore.loadDays(p.id, [today]).catch(() => ({}));
+      if (fresh[today]) a.days[today] = fresh[today]; else delete a.days[today];
+      allowanceRender();
+    }
+  });
+}
+
+/**
+ * 요일 칸을 누르면 그날 현황. 부모는 여기서 확인(+선택 감액)한다.
+ * 확인한 날은 아이가 못 바꾸고, 지급 완료된 주는 부모도 못 바꾼다.
+ */
+function allowanceOpenDay(date) {
+  const a = state.allowance;
+  if (!a) return;
+  const { config, today } = a;
+  const dayIdx = (new Date(date + "T00:00:00").getDay() + 6) % 7;
+  const weekStart = allowWeekStart(date);
+  const weekDoc = (a.weeks || []).find(w => w.weekStart === weekStart);
+  const paid = !!(weekDoc && weekDoc.paid);
+  const day = a.days[date];
+  const tasks = date === today ? allowTasksForDay(day, config) : ((day && day.tasks) || []);
+  const done = (day && day.done) || {};
+  const rule = allowDayEarned({ tasks, done });
+  const k = tasks.filter(t => done[t.id]).length;
+
+  const node = document.createElement("div");
+  node.className = "modal-card";
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  node.appendChild(el("div", "modal-title", `${allowMd(date)} (${ALLOW_DAY_NAMES[dayIdx]}) 할 일`));
+
+  if (date < config.startDate || date > today) {
+    node.appendChild(el("div", "modal-subtitle", date > today ? "아직 오지 않은 날이에요" : "용돈 시작 전 날짜예요"));
+    const actions = el("div", "modal-actions");
+    const close = el("button", "btn-secondary", "닫기");
+    close.addEventListener("click", () => closeModal());
+    actions.appendChild(close);
+    node.appendChild(actions);
+    openModal(node);
+    return;
+  }
+
+  if (!tasks.length) node.appendChild(el("div", "day-task no", "기록이 없어요"));
+  tasks.forEach(t => node.appendChild(el("div", "day-task" + (done[t.id] ? "" : " no"), (done[t.id] ? "✅ " : "⬜ ") + t.title)));
+  node.appendChild(el("div", "day-rule",
+    tasks.length ? `${k}/${tasks.length} 완료 → 규칙 금액 ${allowWon(rule)}${k && k === tasks.length ? " (전부 완료)" : ""}` : ""));
+  const dayBonuses = (a.bonuses || []).filter(b => b.date === date);
+  const dayBonusSum = dayBonuses.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+  dayBonuses.forEach(b => {
+    const row = el("div", "allow-bonus");
+    row.append(el("span", "bt", "🎁 " + b.title), el("span", "ba", "+" + allowWon(b.amount)));
+    if (!paid && b.weekStart === a.weekStart) {
+      const del = el("button", "", "✕");
+      del.type = "button";
+      del.title = "삭제 (부모님)";
+      del.addEventListener("click", () => { closeModal(); setTimeout(() => allowanceDeleteBonus(b.id), 260); });
+      row.appendChild(del);
+    }
+    node.appendChild(row);
+  });
+  if (dayBonuses.length) node.lastChild.style.marginBottom = "12px";
+
+  const actions = el("div", "modal-actions");
+  const close = el("button", "btn-secondary", "닫기");
+  close.addEventListener("click", () => closeModal());
+
+  if (day && day.confirmed) {
+    const c = day.confirmed;
+    const st = el("div", "day-status", `✅ 부모 확인 완료 · 할 일 ${allowWon(c.amount)}`);
+    if (c.deduction) st.appendChild(el("div", "sub", `감액 −${allowWon(c.deduction)}${c.reason ? " · " + c.reason : ""}`));
+    if (dayBonusSum) st.appendChild(el("div", "sub", `특별 보상 +${allowWon(dayBonusSum)} → 이날 ${allowWon(c.amount + dayBonusSum)}`));
+    node.appendChild(st);
+    actions.appendChild(close);
+    if (!paid) {
+      const undo = el("button", "btn-primary", "확인 취소");
+      undo.addEventListener("click", () => {
+        closeModal();
+        setTimeout(() => allowanceAskParent(config, `${allowMd(date)} 확인 취소 — 부모님`, async () => {
+          const next = { ...day };
+          delete next.confirmed;
+          try {
+            await allowanceSaveDayConfirm(a, date, next);
+            ui.toast("확인을 취소했어요", "info");
+          } catch (e) {
+            console.error("[allowance] 확인 취소 실패:", e);
+            ui.toast("저장하지 못했어요. 다시 해볼래?", "error", 3000);
+          }
+        }), 260);
+      });
+      actions.appendChild(undo);
+    } else {
+      node.appendChild(el("div", "modal-subtitle", "지급 완료된 주라 바꿀 수 없어요"));
+    }
+    node.appendChild(actions);
+    openModal(node);
+    return;
+  }
+
+  if (paid) {
+    node.appendChild(el("div", "modal-subtitle", "지급 완료된 주라 확인할 수 없어요 (0원 처리)"));
+    actions.appendChild(close);
+    node.appendChild(actions);
+    openModal(node);
+    return;
+  }
+
+  // 부모 확인 + 감액 (선택)
+  node.appendChild(el("label", "form-label", "감액 (선택)"));
+  const chips = el("div", "day-chips");
+  const amount = el("input", "form-input");
+  amount.inputMode = "numeric";
+  amount.placeholder = "감액할 금액 (없으면 비워 두세요)";
+  amount.autocomplete = "off";
+  [0, 100, 300, 500].forEach(v => {
+    const b = el("button", v === 0 ? "selected" : "", v === 0 ? "없음" : `−${v}`);
+    b.type = "button";
+    b.addEventListener("click", () => {
+      chips.querySelectorAll("button").forEach(x => x.classList.toggle("selected", x === b));
+      amount.value = v ? String(v) : "";
+      update();
+    });
+    chips.appendChild(b);
+  });
+  node.appendChild(chips);
+  node.appendChild(amount);
+  node.appendChild(el("label", "form-label", "감액 사유 (선택)"));
+  const reason = el("input", "form-input");
+  reason.placeholder = "예: 방 정리가 덜 됐어요";
+  reason.maxLength = 60;
+  reason.autocomplete = "off";
+  node.appendChild(reason);
+  const final = el("div", "day-final");
+  node.appendChild(final);
+  node.appendChild(el("label", "form-label", "부모 비밀번호"));
+  const pw = el("input", "form-input");
+  pw.type = "password";
+  pw.autocomplete = "off";
+  node.appendChild(pw);
+  const err = el("div", "form-error");
+  node.appendChild(err);
+
+  const parseDeduction = () => {
+    const s = String(amount.value).replace(/[,\s원−-]/g, "");
+    if (!s) return 0;
+    const n = Number(s);
+    return Number.isInteger(n) && n >= 0 ? n : NaN;
+  };
+  function update() {
+    const d = parseDeduction();
+    if (Number.isNaN(d)) { final.textContent = "감액은 숫자로 적어주세요"; return; }
+    const taskAmt = Math.max(0, rule - d);
+    final.textContent = (d
+      ? `할 일 ${allowWon(taskAmt)} (${allowWon(rule)} − ${allowWon(d)})`
+      : `할 일 ${allowWon(rule)}`) + (dayBonusSum ? ` + 특별 ${allowWon(dayBonusSum)} = ${allowWon(taskAmt + dayBonusSum)}` : "");
+  }
+  amount.addEventListener("input", () => {
+    chips.querySelectorAll("button").forEach(x => x.classList.remove("selected"));
+    update();
+  });
+  update();
+
+  const ok = el("button", "btn-primary", "부모 확인 완료");
+  const submit = async () => {
+    if (ok.disabled) return;
+    const d = parseDeduction();
+    if (Number.isNaN(d)) { err.textContent = "감액은 숫자로 적어주세요"; return; }
+    if (d > rule) { err.textContent = `감액은 그날 금액(${allowWon(rule)})보다 클 수 없어요`; return; }
+    if (!allowCheckSecret(config.parent, pw.value)) { err.textContent = "부모 비밀번호가 달라요"; return; }
+    ok.disabled = true;
+    try {
+      const base = day ? { ...day } : { date, tasks: tasks.map(t => ({ id: t.id, title: t.title })), done: {} };
+      base.confirmed = {
+        at: nowIso(),
+        rule,
+        deduction: d,
+        reason: d ? reason.value.trim().slice(0, 60) : "",
+        amount: Math.max(0, rule - d),
+      };
+      await allowanceSaveDayConfirm(a, date, base);
+      closeModal();
+      ui.toast(`${allowMd(date)} 확인 완료! ${allowWon(base.confirmed.amount)} ✅`, "success");
+    } catch (e) {
+      console.error("[allowance] 확인 저장 실패:", e);
+      err.textContent = "저장하지 못했어요. 인터넷 연결을 확인해 주세요.";
+    } finally {
+      ok.disabled = false;
+    }
+  };
+  ok.addEventListener("click", submit);
+  pw.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+  actions.append(close, ok);
+  node.appendChild(actions);
+  openModal(node);
+}
+
+/** 확인/확인 취소 저장 + 지난주면 그 주 기록 갱신 */
+async function allowanceSaveDayConfirm(a, date, day) {
+  await allowStore.saveDay(a.pid, day);
+  a.days[date] = day;
+  await allowRefreshWeekRecord(a, allowWeekStart(date));
+  allowanceRender();
+}
+
+function allowanceOpenSettings() {
+  const a = state.allowance;
+  if (!a) return;
+  const p = state.allowanceProfile;
+  allowanceAskParent(a.config, "설정 — 부모님 확인 🔐", () => {
+    allowModal({
+      title: "용돈 설정 ⚙️",
+      subtitle: `시작일 ${a.config.startDate}`,
+      fields: [
+        { key: "tasks", label: `매일 할 일 (한 줄에 하나, 최대 ${ALLOW_MAX_TASKS}개)`, type: "textarea",
+          value: (a.config.tasks || []).map(t => t.title).join("\n"),
+          hint: "오늘 이미 완료한 게 있으면, 바뀐 할 일은 내일부터 적용돼요" },
+        { key: "pin", label: "용돈 비밀번호 바꾸기 (선택)", type: "password", numeric: true, placeholder: "바꿀 때만 입력" },
+        { key: "parent", label: "부모 비밀번호 바꾸기 (선택)", type: "password", placeholder: "바꿀 때만 입력" },
+        { key: "parent2", label: "새 부모 비밀번호 한 번 더", type: "password" },
+      ],
+      confirmText: "저장",
+      onConfirm: async (v, setError) => {
+        const tasks = allowParseTasks(v.tasks, a.config.tasks);
+        if (!tasks.length) { setError("할 일을 하나 이상 적어주세요"); return false; }
+        if (tasks.length > ALLOW_MAX_TASKS) { setError(`할 일은 ${ALLOW_MAX_TASKS}개까지예요`); return false; }
+        const pin = v.pin.trim();
+        if (pin && !allowValidPin(pin)) { setError("용돈 비밀번호는 숫자 4~8자리예요"); return false; }
+        if (v.parent || v.parent2) {
+          if (v.parent.length < 4) { setError("부모 비밀번호는 4자 이상이어야 해요"); return false; }
+          if (v.parent !== v.parent2) { setError("새 부모 비밀번호 두 개가 서로 달라요"); return false; }
+        }
+
+        const config = { ...a.config, tasks };
+        if (pin) config.pin = allowMakeSecret(pin);
+        if (v.parent) config.parent = allowMakeSecret(v.parent);
+        await allowStore.saveConfig(p.id, config);
+        a.config = config;
+        allowanceRender();
+
+        const day = a.days[a.today];
+        const tasksChanged = JSON.stringify(allowTasksForDay(day, config)) !== JSON.stringify(tasks);
+        ui.toast(tasksChanged ? "저장했어요. 바뀐 할 일은 내일부터 적용돼요" : "저장했어요 ✨", "success", 3000);
+        return true;
+      },
+    });
+  });
+}
+
+
+/** 특별 보상 — 이번 주에 더해진다. 부모 비밀번호는 같은 모달에서 받는다. */
+function allowanceOpenBonus() {
+  const a = state.allowance;
+  if (!a) return;
+  const p = state.allowanceProfile;
+  allowModal({
+    title: "특별 보상 🎁",
+    subtitle: "이번 주 용돈에 더해져요",
+    fields: [
+      { key: "title", label: "보상 이름", placeholder: "예: 수학시험 만점 축하금" },
+      { key: "amount", label: "금액 (원)", numeric: true, placeholder: "예: 1000" },
+      { key: "pw", label: "부모 비밀번호", type: "password" },
+    ],
+    confirmText: "보상 주기",
+    onConfirm: async (v, setError) => {
+      const title = v.title.trim().slice(0, 30);
+      const amount = Number(String(v.amount).replace(/[,\s원]/g, ""));
+      if (!title) { setError("보상 이름을 적어주세요"); return false; }
+      if (!Number.isInteger(amount) || amount <= 0 || amount > 1000000) {
+        setError("금액은 1원 ~ 1,000,000원 사이 숫자로 적어주세요"); return false;
+      }
+      if (!allowCheckSecret(a.config.parent, v.pw)) { setError("부모 비밀번호가 달라요"); return false; }
+
+      const today = formatLocalDateClient(new Date());
+      const bonus = {
+        id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        title, amount,
+        date: today,
+        weekStart: allowWeekStart(today),
+        createdAt: nowIso(),
+      };
+      await allowStore.saveBonus(p.id, bonus);
+      a.bonuses = [...(a.bonuses || []), bonus];
+      allowanceRender();
+      fireConfetti();
+      ui.toast(`${title} +${allowWon(amount)}! 🎁`, "success", 3000);
+      return true;
+    },
+  });
+}
+
+function allowanceDeleteBonus(id) {
+  const a = state.allowance;
+  if (!a) return;
+  const b = (a.bonuses || []).find(x => x.id === id);
+  if (!b) return;
+  allowanceAskParent(a.config, `'${b.title}' 삭제 — 부모님 확인`, async () => {
+    try {
+      await allowStore.deleteBonus(a.pid, id);
+      a.bonuses = a.bonuses.filter(x => x.id !== id);
+      allowanceRender();
+      ui.toast("특별 보상을 지웠어요", "info");
+    } catch (e) {
+      console.error("[allowance] 보상 삭제 실패:", e);
+      ui.toast("지우지 못했어요. 다시 해볼래?", "error", 3000);
+    }
+  });
+}
+
+function allowanceOpenHistory() {
+  const a = state.allowance;
+  if (!a) return;
+  document.getElementById("allowHistAvatar").textContent = (state.allowanceProfile && state.allowanceProfile.avatar) || "🦄";
+  const today = a.today;
+  const from = document.getElementById("histFrom");
+  const to = document.getElementById("histTo");
+  if (!from.value) from.value = today.slice(0, 4) + "-01-01";
+  if (!to.value) to.value = today;
+  showScreen("allowanceHistoryScreen");
+  window.scrollTo({ top: 0, behavior: "instant" });
+  allowanceRenderHistory();
+}
+
+/** 선택한 범위의 [시작, 끝] (지급일=일요일 기준, 둘 다 포함) */
+function allowHistoryRange(today) {
+  const sel = document.querySelector("#histFilters button.selected");
+  const range = sel ? sel.dataset.range : "month";
+  if (range === "month") return [today.slice(0, 7) + "-01", today.slice(0, 7) + "-31", "이번 달"];
+  if (range === "year") return [today.slice(0, 4) + "-01-01", today.slice(0, 4) + "-12-31", "올해"];
+  if (range === "all") return ["0000-00-00", "9999-99-99", "전체"];
+  let f = document.getElementById("histFrom").value || "0000-00-00";
+  let t = document.getElementById("histTo").value || "9999-99-99";
+  if (f > t) [f, t] = [t, f];
+  return [f, t, "지정 기간"];
+}
+
+function allowanceRenderHistory() {
+  const a = state.allowance;
+  if (!a) return;
+  const [from, to, label] = allowHistoryRange(a.today);
+  const weeks = (a.weeks || []).filter(w => w.payDate >= from && w.payDate <= to);
+  const total = weeks.reduce((s, w) => s + w.total, 0);
+  const paid = weeks.filter(w => w.paid).reduce((s, w) => s + w.total, 0);
+
+  document.getElementById("histTotal").textContent = allowWon(total);
+  document.getElementById("histTotalSub").textContent = weeks.length
+    ? `${label} · ${weeks.length}주 · 지급 완료 ${allowWon(paid)} · 아직 안 줌 ${allowWon(total - paid)}`
+    : `${label} · 확정된 주가 없어요`;
+
+  const byMonth = {};
+  weeks.forEach(w => { const m = w.payDate.slice(0, 7); byMonth[m] = (byMonth[m] || 0) + w.total; });
+  const months = Object.keys(byMonth).sort().reverse();
+  document.getElementById("histMonthsCard").hidden = months.length < 2;
+  const mEl = document.getElementById("histMonths");
+  mEl.innerHTML = "";
+  months.forEach(m => {
+    const row = document.createElement("div");
+    row.className = "hist-month";
+    const l = document.createElement("span");
+    l.className = "l";
+    l.textContent = `${m.slice(0, 4)}년 ${Number(m.slice(5, 7))}월`;
+    const r = document.createElement("span");
+    r.className = "r";
+    r.textContent = allowWon(byMonth[m]);
+    row.append(l, r);
+    mEl.appendChild(row);
+  });
+
+  const wEl = document.getElementById("histWeeks");
+  wEl.innerHTML = "";
+  const curPay = allowAddDays(a.weekStart, 6);
+  if (curPay >= from && curPay <= to) {
+    const wb = (a.bonuses || []).filter(b => b.weekStart === a.weekStart);
+    const sum = allowWeekSummary(a.weekStart, a.days, a.config.startDate, a.today, wb);
+    const row = document.createElement("div");
+    row.className = "hist-week current";
+    const l = document.createElement("span");
+    l.className = "l";
+    l.textContent = `${allowMd(curPay)} (일) · 이번 주 진행 중`;
+    const r = document.createElement("span");
+    r.className = "r";
+    r.textContent = allowWon(sum.total);
+    row.append(l, r);
+    wEl.appendChild(row);
+  }
+  if (!weeks.length && !wEl.children.length) {
+    const e = document.createElement("div");
+    e.className = "allow-empty";
+    e.textContent = "아직 기록이 없어요";
+    wEl.appendChild(e);
+  }
+  weeks.forEach(w => {
+    const row = document.createElement("div");
+    row.className = "hist-week";
+    row.dataset.week = w.weekStart;
+    const l = document.createElement("span");
+    l.className = "l";
+    l.textContent = `${w.payDate.slice(0, 4)}. ${allowMd(w.payDate)} (일)`;
+    const badge = document.createElement("span");
+    const waiting = !w.paid && w.pendingDays > 0;
+    badge.className = "paid " + (w.paid ? "yes" : "no");
+    badge.textContent = w.paid ? "✅ 지급" : waiting ? `⏳ 확인 대기 ${w.pendingDays}일` : "미지급";
+    const r = document.createElement("span");
+    r.className = "r";
+    r.textContent = allowWon(w.total);
+    row.append(l, badge, r);
+    wEl.appendChild(row);
+  });
+}
+
+function allowanceShowWeekDetail(weekStart) {
+  const a = state.allowance;
+  const w = a && (a.weeks || []).find(x => x.weekStart === weekStart);
+  if (!w) return;
+  const node = document.createElement("div");
+  node.className = "modal-card";
+  const title = document.createElement("div");
+  title.className = "modal-title";
+  title.textContent = `${allowMd(w.weekStart)} ~ ${allowMd(w.payDate)} 용돈`;
+  node.appendChild(title);
+  const add = (l, r, cls) => {
+    const row = document.createElement("div");
+    row.className = "hist-detail-row" + (cls ? " " + cls : "");
+    const a1 = document.createElement("span");
+    a1.textContent = l;
+    const a2 = document.createElement("span");
+    a2.textContent = r;
+    row.append(a1, a2);
+    node.appendChild(row);
+  };
+  add("기본 용돈", allowWon(w.base));
+  (w.perDay || []).forEach((d, i) => {
+    const label = `${ALLOW_DAY_NAMES[i]} ${allowMd(allowAddDays(w.weekStart, i))} 할 일`;
+    if (d == null) { add(label, "–"); return; }
+    if (d.status === "pending") { add(label, `⏳ 확인 대기 (${allowWon(d.rule)})`); return; }
+    add(label, allowWon(d.amt));
+    if (d.deduction) add(`   ➖ 감액${d.reason ? " · " + d.reason : ""}`, "−" + allowWon(d.deduction));
+  });
+  (w.bonusItems || []).forEach(b => add(`🎁 ${b.date ? allowMd(b.date) + " " : ""}${b.title}`, "+" + allowWon(b.amount)));
+  add("합계", allowWon(w.total), "total");
+
+  const status = document.createElement("div");
+  status.className = "modal-subtitle";
+  status.style.marginTop = "12px";
+  status.textContent = w.paid ? `✅ 지급 완료 (${String(w.paidAt || "").slice(0, 10)})` : "아직 안 줬어요";
+  node.appendChild(status);
+
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+  const close = document.createElement("button");
+  close.className = "btn-secondary";
+  close.textContent = "닫기";
+  const toggle = document.createElement("button");
+  toggle.className = "btn-primary";
+  toggle.textContent = w.paid ? "지급 취소" : "지급 완료로 표시";
+  actions.append(close, toggle);
+  node.appendChild(actions);
+
+  if (!w.paid && w.pendingDays > 0) {
+    const warn = document.createElement("div");
+    warn.className = "form-error";
+    warn.textContent = `확인 안 된 날이 ${w.pendingDays}일 있어요. 요일 칸을 눌러 먼저 확인해 주세요 (지급하면 0원으로 고정돼요)`;
+    node.insertBefore(warn, actions);
+  }
+
+  close.addEventListener("click", () => closeModal());
+  toggle.addEventListener("click", () => {
+    closeModal();
+    setTimeout(() => allowanceAskParent(a.config, w.paid ? "지급 취소 — 부모님 확인" : "지급 완료 — 부모님 확인", async () => {
+      const next = { ...w, paid: !w.paid, paidAt: !w.paid ? nowIso() : null };
+      try {
+        await allowStore.saveWeek(a.pid, next);
+        a.weeks = a.weeks.map(x => (x.weekStart === w.weekStart ? next : x));
+        allowanceRenderHistory();
+        ui.toast(next.paid ? "지급 완료로 표시했어요 ✅" : "지급 표시를 취소했어요", "success");
+      } catch (e) {
+        console.error("[allowance] 지급 표시 실패:", e);
+        ui.toast("저장하지 못했어요. 다시 해볼래?", "error", 3000);
+      }
+    }), 260);
+  });
+  openModal(node);
+}
+
+
+// ============================================================
 // 7. 모달 시스템
 // ============================================================
 
@@ -6525,6 +8096,10 @@ function showConfirmDeleteModal(profile) {
       await api.post("deleteProfile", { profileId: profile.id });
       // 로컬에서도 제거
       state.profiles = state.profiles.filter(p => p.id !== profile.id);
+      if (state.allowanceProfile && state.allowanceProfile.id === profile.id) {
+        state.allowanceProfile = null;
+        state.allowance = null;
+      }
       cache.set(LS_KEY.PROFILES_CACHE, state.profiles);
       cache.clearProfile(profile.id);
 
@@ -6710,6 +8285,44 @@ function attachStaticEventListeners() {
   const welcomeMastery = document.getElementById("welcomeMasteryBtn");
   if (welcomeMastery) welcomeMastery.addEventListener("click", () => {
     enterMasteryScreen('welcome');
+  });
+
+  // [v9] 용돈
+  document.getElementById("homeAllowanceBtn").addEventListener("click", () => openAllowanceFromHome());
+  document.getElementById("allowanceBackBtn").addEventListener("click", () => enterProfileScreen());
+  document.getElementById("allowSettingsBtn").addEventListener("click", () => allowanceOpenSettings());
+  document.getElementById("allowTaskList").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-task-id]");
+    if (btn) allowanceToggleTask(btn.dataset.taskId);
+  });
+  document.getElementById("allowBonusBtn").addEventListener("click", () => allowanceOpenBonus());
+  document.getElementById("allowPrevWeek").addEventListener("click", () => allowanceMoveWeek(-1));
+  document.getElementById("allowNextWeek").addEventListener("click", () => allowanceMoveWeek(1));
+  document.getElementById("allowDays").addEventListener("click", (e) => {
+    const cell = e.target.closest("[data-date]");
+    if (cell) allowanceOpenDay(cell.dataset.date);
+  });
+  document.getElementById("allowBonusList").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-bonus-id]");
+    if (btn) allowanceDeleteBonus(btn.dataset.bonusId);
+  });
+  document.getElementById("allowHistoryBtn").addEventListener("click", () => allowanceOpenHistory());
+  document.getElementById("allowHistBackBtn").addEventListener("click", () => {
+    showScreen("allowanceScreen");
+    allowanceRender();
+  });
+  document.getElementById("histFilters").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-range]");
+    if (!btn) return;
+    document.querySelectorAll("#histFilters button").forEach(b => b.classList.toggle("selected", b === btn));
+    document.getElementById("histRange").hidden = btn.dataset.range !== "custom";
+    allowanceRenderHistory();
+  });
+  ["histFrom", "histTo"].forEach(id =>
+    document.getElementById(id).addEventListener("change", () => allowanceRenderHistory()));
+  document.getElementById("histWeeks").addEventListener("click", (e) => {
+    const row = e.target.closest("[data-week]");
+    if (row) allowanceShowWeekDetail(row.dataset.week);
   });
 
   // [v4] 시험 옵션 화면 [내 기록] 버튼
