@@ -2641,6 +2641,19 @@
 .hist-detail-row.total { font-weight: 800; font-size: 1.1rem; border-bottom: none; color: #B45309; }
 .modal-card textarea.form-input { min-height: 180px; resize: vertical; line-height: 1.5; font-size: 1rem; }
 .modal-card .form-hint { font-size: 0.85rem; color: var(--gray); margin: -10px 0 16px; }
+.modal-card .allow-unlock-toggle {
+  display: block;
+  margin: -8px auto 12px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--gray);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
 .modal-card .form-error { font-size: 0.95rem; color: #E53E3E; font-weight: 700; text-align: center; min-height: 1.2em; margin-bottom: 10px; }
 </style>
 </head>
@@ -7050,14 +7063,22 @@ async function enterAllowanceScreen() {
   if (!config) { allowanceOpenSetup(p); return; }
   if (state.allowanceUnlocked[p.id]) { await allowanceShow(p, config); return; }
 
-  allowModal({
+  allowanceAskUnlock(p, config);
+}
+
+/** 용돈 화면 잠금 해제: 기본은 아이 비밀번호(숫자 키패드), 버튼으로 부모 비밀번호(일반 키보드) 전환 */
+function allowanceAskUnlock(p, config) {
+  const { node, inputs, setError } = allowModal({
     title: "용돈 비밀번호 🔒",
     subtitle: "용돈 비밀번호를 넣어줘",
-    fields: [{ key: "pin", label: "비밀번호", type: "password", numeric: true, placeholder: "숫자 4자리 이상" }],
+    fields: [{ key: "pw", label: "용돈 비밀번호", type: "password", numeric: true, placeholder: "숫자 4~8자리" }],
     confirmText: "열기",
     onConfirm: async (v, setError) => {
-      if (!allowCheckSecret(config.pin, v.pin.trim())) {
-        setError("비밀번호가 달라요. 다시 해볼래?");
+      const ok = parentMode
+        ? allowCheckSecret(config.parent, v.pw)
+        : allowCheckSecret(config.pin, v.pw.trim());
+      if (!ok) {
+        setError(parentMode ? "부모 비밀번호가 달라요" : "비밀번호가 달라요. 다시 해볼래?");
         return false;
       }
       state.allowanceUnlocked[p.id] = true;
@@ -7065,6 +7086,30 @@ async function enterAllowanceScreen() {
       return true;
     },
   });
+
+  let parentMode = false;
+  const input = inputs.pw;
+  const label = node.querySelector(".form-label");
+  const subtitle = node.querySelector(".modal-subtitle");
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "allow-unlock-toggle";
+  node.insertBefore(toggle, node.querySelector(".form-error"));
+
+  const apply = () => {
+    label.textContent = parentMode ? "부모 비밀번호" : "용돈 비밀번호";
+    subtitle.textContent = parentMode ? "부모님 비밀번호로 열어요" : "용돈 비밀번호를 넣어줘";
+    input.placeholder = parentMode ? "부모 비밀번호" : "숫자 4~8자리";
+    input.inputMode = parentMode ? "text" : "numeric";
+    toggle.textContent = parentMode ? "← 아이 비밀번호로 열기" : "👨‍👩‍👧 부모 비밀번호로 열기";
+    input.value = "";
+    setError("");
+    // 키보드 종류는 다시 포커스해야 바뀌는 휴대폰이 있다
+    input.blur();
+    setTimeout(() => input.focus(), 50);
+  };
+  toggle.addEventListener("click", () => { parentMode = !parentMode; apply(); });
+  toggle.textContent = "👨‍👩‍👧 부모 비밀번호로 열기";
 }
 
 /** 처음 설정 — 부모님이 비밀번호와 할 일을 정한다 */
