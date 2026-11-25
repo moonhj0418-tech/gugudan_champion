@@ -7309,7 +7309,6 @@ function allowanceRender() {
   let line = `기본 ${allowWon(sum.base)} + 할 일 ${allowWon(sum.earned)}`;
   if (sum.bonus) line += ` + 특별 ${allowWon(sum.bonus)}`;
   if (sum.pending) line += ` · 확인 대기 +${allowWon(sum.pending)}`;
-  else if (view === weekStart) line += ` · 최대 ${allowWon(sum.max)}`;
   document.getElementById("allowWeekMax").textContent = line;
 
   // 오늘 할 일 박스 안: 오늘의 감액 / 특별 보상 (지난 날짜는 요일 칸 금액 + 칸 상세에서 본다)
@@ -7480,9 +7479,15 @@ async function allowanceSaveToday(p, a, prev, tasks, done, taskId) {
   }
 
   // 연달아 눌러도 막지 않는다. 저장은 순서대로, 매번 그 시점의 최신 상태를 쓴다.
+  const notifyDone = nowAll && !wasAll;
   a.saveChain = (a.saveChain || Promise.resolve()).then(async () => {
     try {
       await allowStore.saveDay(p.id, a.days[today] || day);
+      // 전부 완료 → 부모에게 텔레그램. 서버가 Firestore 를 직접 읽어 확인하고 하루 한 번만 보낸다.
+      if (notifyDone) {
+        api.post("notifyAllowanceDayDone", { date: today })
+          .catch(err => console.warn("[allowance] 완료 알림 실패(무시):", err));
+      }
     } catch (e) {
       console.error("[allowance] 저장 실패:", e);
       ui.toast("저장을 못 했어요. 다시 불러올게요", "error", 3000);
